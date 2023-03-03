@@ -17,7 +17,7 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
 
         public IActionResult Index()
         {
-            return View(_userService.GetUsers().Result.Data);
+            return View(_userService.GetUsers().Result);
         }
     }
 }

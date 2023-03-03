@@ -8,7 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Users;
 
-namespace SchoolWebRegister.Services.Authentication
+namespace SchoolWebRegister.Services.Authentication.JWT
 {
     public sealed class JWTAuthenticationService : IAuthenticationService
     {
@@ -34,7 +34,7 @@ namespace SchoolWebRegister.Services.Authentication
                 IssuerSigningKeys = signingKeys,
                 RequireSignedTokens = true,
                 RequireExpirationTime = true,
-                ValidateLifetime = true,       
+                ValidateLifetime = true,
                 ValidateAudience = true,
                 ValidAudience = _validAudience,
                 ValidateIssuer = true,

@@ -17,7 +17,7 @@ namespace SchoolWebRegister.Web.Controllers
 
         public IActionResult Index()
         {
-            return Content($"Поздравляю, вы авторизованы!");
+            return Content("");
         }
 
         public IActionResult Privacy()

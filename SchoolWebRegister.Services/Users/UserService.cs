@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Data.Entity.Core;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -78,53 +79,29 @@ namespace SchoolWebRegister.Services.Users
                 };
             }
         }
-        public async Task<BaseResponse<ApplicationUser?>> GetUserById(string id)
+        public async Task<ApplicationUser?> GetUserById(string id)
         {
             try
             {
                 ApplicationUser? user = await ValidateIfUserNotExist(id);
-
-                return new BaseResponse<ApplicationUser?>
-                {
-                    Data = user,
-                    StatusCode = StatusCode.Successful
-                };
+                return user;
             }
             catch (Exception ex)
             {
-                return new BaseResponse<ApplicationUser?>
-                {
-                    Description = $"[GetUserById]: {ex.Message}",
-                    StatusCode = StatusCode.InternalServerError
-                };
+                return null;
             }
         }
-        public async Task<BaseResponse<ApplicationUser?>> GetUserByLogin(string login)
+        public async Task<ApplicationUser?> GetUserByLogin(string login)
         {
             try
             {
-                var response = new BaseResponse<ApplicationUser?>();
-
-                ApplicationUser? user = await _userManager.FindByNameAsync(login);
-                if (user == null)
-                {
-                    response.Description = "Пользователь не найден.";
-                    response.StatusCode = StatusCode.UserNotFound;
-                }
-                else
-                    response.StatusCode = StatusCode.Successful;
-
-                response.Data = user;
-
-                return response;
+                if (string.IsNullOrWhiteSpace(login)) throw new ArgumentNullException(nameof(login));
+                ApplicationUser? user = await _userManager.FindByNameAsync(login);                
+                return user;
             }
             catch (Exception ex)
             {
-                return new BaseResponse<ApplicationUser?>
-                {
-                    Description = $"[GetUserById]: {ex.Message}",
-                    StatusCode = StatusCode.InternalServerError
-                };
+                return null;
             }
         }
         public async Task<BaseResponse<ApplicationUser>> UpdateUser(ApplicationUser modifiedUser)
@@ -149,36 +126,30 @@ namespace SchoolWebRegister.Services.Users
                 };
             }
         }
-        public async Task<BaseResponse<IEnumerable<ApplicationUser>>> GetUsers()
+        public async Task<IEnumerable<ApplicationUser>> GetUsers()
         {
-            var response = new BaseResponse<IEnumerable<ApplicationUser>>();
             try
             {
-                var users = await _userManager.Users.ToListAsync();
-                if (users.Count() == 0)
-                {
-                    response.Description = "Список пользователей пуст.";
-                    response.StatusCode = StatusCode.NoContent;
-                }
-                else
-                    response.StatusCode = StatusCode.Successful;
-
-                response.Data = users;
-
-                return response;
+                var list = await _userManager.Users.ToListAsync();
+                return list;
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                return new BaseResponse<IEnumerable<ApplicationUser>>
-                {
-                    Description = $"[GetUsers]: {ex.Message}",
-                    StatusCode = StatusCode.InternalServerError
-                };
+                return Enumerable.Empty<ApplicationUser>();
             }
         }
         public async Task<IList<string>> GetUserRoles(ApplicationUser user)
         {
-            return await _userManager.GetRolesAsync(user);
+            try
+            {
+                if (user == null) throw new ArgumentNullException();
+                var roles = await _userManager.GetRolesAsync(user);
+                return roles;
+            }
+            catch (Exception ex)
+            {
+                return new List<string>();
+            }
         }
     }
 }

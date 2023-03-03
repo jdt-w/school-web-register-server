@@ -2,7 +2,7 @@
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Users;
 
-namespace SchoolWebRegister.Tests.Modal_Tests
+namespace SchoolWebRegister.Tests.ModalTests
 {
     public class UserServiceTests
     {
@@ -39,9 +39,8 @@ namespace SchoolWebRegister.Tests.Modal_Tests
             var findResult = await mock.Object.GetUserById(testUserId);
 
             Assert.True(createResult.StatusCode == Domain.StatusCode.Successful);
-            Assert.True(findResult.StatusCode == Domain.StatusCode.Successful);
-            Assert.NotNull(findResult.Data);
-            Assert.Equal(testUserId, findResult.Data.Id);
+            Assert.NotNull(findResult);
+            Assert.Equal(testUserId, findResult.Id);
         }
     }
 }

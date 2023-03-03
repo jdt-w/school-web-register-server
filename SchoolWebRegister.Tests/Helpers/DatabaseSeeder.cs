@@ -7,7 +7,7 @@ using SchoolWebRegister.Domain.Entity;
 
 namespace SchoolWebRegister.Tests.Helpers
 {
-    internal static class DatabaseSeeder
+    public static class DatabaseSeeder
     {
         public static async void Initialize(IServiceProvider serviceProvider)
         {

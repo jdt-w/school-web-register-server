@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -7,6 +6,7 @@ using SchoolWebRegister.DAL;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
+using SchoolWebRegister.Services.Authentication.JWT;
 using SchoolWebRegister.Services.Users;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,8 +32,8 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;
-    options.LoginPath = "/Account/Login";
-    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.LoginPath = "/users/login";
+    options.AccessDeniedPath = "/users/access-denied";
     options.SlidingExpiration = true;
     options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
 });
@@ -60,7 +60,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IAuthenticationService, DefaultAuthenticationService>();
+builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
 builder.Services.AddScoped<JWTAuthenticationService>();
 
 var app = builder.Build();
@@ -88,6 +88,11 @@ app.MapAreaControllerRoute(
     name: "AdminArea",
     areaName: "Admin",
     pattern: "Admin/{controller=Home}/{action=Index}/{id?}");
+
+app.MapAreaControllerRoute(
+    name: "UsersArea",
+    areaName: "Users",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
 app.MapControllerRoute(
     name: "default", 

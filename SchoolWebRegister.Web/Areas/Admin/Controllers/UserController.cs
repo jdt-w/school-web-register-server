@@ -13,17 +13,6 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
             _usersService = userService;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetUsers()
-        {
-            var response = await _usersService.GetUsers();
-            if (response.StatusCode == Domain.StatusCode.Successful)
-            {
-                return View(response.Data);
-            }
-            return RedirectToAction("Error");
-        }
-
         [Authorize(Roles = nameof(UserRole.Administrator))]
         public async Task<IActionResult> DeleteUser(ApplicationUser user)
         {
