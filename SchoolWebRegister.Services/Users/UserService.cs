@@ -176,5 +176,9 @@ namespace SchoolWebRegister.Services.Users
                 };
             }
         }
+        public async Task<IList<string>> GetUserRoles(ApplicationUser user)
+        {
+            return await _userManager.GetRolesAsync(user);
+        }
     }
 }

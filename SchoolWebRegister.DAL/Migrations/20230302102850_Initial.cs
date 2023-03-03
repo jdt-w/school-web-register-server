@@ -53,6 +53,35 @@ namespace SchoolWebRegister.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Course",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CourseName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    AuthorUserId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Course", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CourseStudying",
+                columns: table => new
+                {
+                    CourseId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    StudentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Progress = table.Column<decimal>(type: "decimal(2,1)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CourseStudying", x => new { x.CourseId, x.StudentId });
+                    table.UniqueConstraint("AK_CourseStudying_StudentId_CourseId", x => new { x.StudentId, x.CourseId });
+                });
+
+            migrationBuilder.CreateTable(
                 name: "AspNetRoleClaims",
                 columns: table => new
                 {
@@ -163,6 +192,89 @@ namespace SchoolWebRegister.DAL.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "CourseLection",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CourseId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CourseLection", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CourseLection_Course_CourseId",
+                        column: x => x.CourseId,
+                        principalTable: "Course",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Quiz",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    QuizName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    PassThreshold = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
+                    CourseLectionId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Quiz", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Quiz_CourseLection_CourseLectionId",
+                        column: x => x.CourseLectionId,
+                        principalTable: "CourseLection",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "QuizQuestion",
+                columns: table => new
+                {
+                    QuestionId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    QuizId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Text = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuizQuestion", x => x.QuestionId);
+                    table.ForeignKey(
+                        name: "FK_QuizQuestion_Quiz_QuizId",
+                        column: x => x.QuizId,
+                        principalTable: "Quiz",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "QuizAnswer",
+                columns: table => new
+                {
+                    AnswerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    QuestionId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Text = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsCorrect = table.Column<bool>(type: "bit", nullable: false),
+                    QuizQuestionQuestionId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuizAnswer", x => x.AnswerId);
+                    table.ForeignKey(
+                        name: "FK_QuizAnswer_QuizQuestion_QuestionId",
+                        column: x => x.QuestionId,
+                        principalTable: "QuizQuestion",
+                        principalColumn: "QuestionId");
+                    table.ForeignKey(
+                        name: "FK_QuizAnswer_QuizQuestion_QuizQuestionQuestionId",
+                        column: x => x.QuizQuestionQuestionId,
+                        principalTable: "QuizQuestion",
+                        principalColumn: "QuestionId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -207,6 +319,37 @@ namespace SchoolWebRegister.DAL.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CourseLection_CourseId",
+                table: "CourseLection",
+                column: "CourseId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Quiz_CourseLectionId",
+                table: "Quiz",
+                column: "CourseLectionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Quiz_Id",
+                table: "Quiz",
+                column: "Id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizAnswer_QuestionId",
+                table: "QuizAnswer",
+                column: "QuestionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizAnswer_QuizQuestionQuestionId",
+                table: "QuizAnswer",
+                column: "QuizQuestionQuestionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_QuizQuestion_QuizId",
+                table: "QuizQuestion",
+                column: "QuizId");
         }
 
         /// <inheritdoc />
@@ -228,10 +371,28 @@ namespace SchoolWebRegister.DAL.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "CourseStudying");
+
+            migrationBuilder.DropTable(
+                name: "QuizAnswer");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "QuizQuestion");
+
+            migrationBuilder.DropTable(
+                name: "Quiz");
+
+            migrationBuilder.DropTable(
+                name: "CourseLection");
+
+            migrationBuilder.DropTable(
+                name: "Course");
         }
     }
 }

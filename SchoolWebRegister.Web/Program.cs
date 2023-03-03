@@ -8,7 +8,6 @@ using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Users;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,7 +60,7 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IAuthenticationService, DefaultAuthenticationService>();
 builder.Services.AddScoped<JWTAuthenticationService>();
 
 var app = builder.Build();

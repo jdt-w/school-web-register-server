@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Areas\Student\Controllers\" />
     <Folder Include="wwwroot\images\" />
   </ItemGroup>
 

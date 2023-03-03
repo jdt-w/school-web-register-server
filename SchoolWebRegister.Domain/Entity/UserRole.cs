@@ -2,9 +2,9 @@
 {
     public enum UserRole : byte
     {
-        Guest = 0,
-        Student = 1,
-        Teacher = 2,
-        Administrator = 3
+        Guest = 0x00,
+        Student = 0x01,
+        Teacher = 0x02,
+        Administrator = 0x04
     }
 }

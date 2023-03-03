@@ -12,8 +12,8 @@ using SchoolWebRegister.DAL;
 namespace SchoolWebRegister.DAL.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20230225185328_Initial")]
-    partial class Initial
+    [Migration("20230302134254_MultiChoiceQuiz")]
+    partial class MultiChoiceQuiz
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -277,6 +277,150 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Course", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("AuthorUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CourseName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("ImageURL")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Course");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.CourseLection", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CourseId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ImageURL")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.ToTable("CourseLection");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.CourseStudying", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<decimal>("Progress")
+                        .HasColumnType("decimal(2,1)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CourseStudying");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Quiz", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CourseLectionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("PassThreshold")
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<string>("QuizName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseLectionId");
+
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.ToTable("Quiz");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.QuizAnswer", b =>
+                {
+                    b.Property<string>("AnswerId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("QuestionId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("AnswerId");
+
+                    b.HasIndex("AnswerId")
+                        .IsUnique();
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("QuizAnswer");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.QuizQuestion", b =>
+                {
+                    b.Property<string>("QuestionId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("MultiChoice")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("QuizId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("QuestionId");
+
+                    b.HasIndex("QuestionId")
+                        .IsUnique();
+
+                    b.HasIndex("QuizId");
+
+                    b.ToTable("QuizQuestion");
+                });
+
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationRole", b =>
                 {
                     b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityRole");
@@ -339,6 +483,64 @@ namespace SchoolWebRegister.DAL.Migrations
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUser", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.CourseStudying", null)
+                        .WithMany("Students")
+                        .HasForeignKey("Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Course", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.CourseStudying", null)
+                        .WithMany("Courses")
+                        .HasForeignKey("Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.CourseLection", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.Course", "Course")
+                        .WithMany("Lections")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Quiz", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.CourseLection", null)
+                        .WithMany("Quizes")
+                        .HasForeignKey("CourseLectionId");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.QuizAnswer", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.QuizQuestion", "Question")
+                        .WithMany("Answers")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.QuizQuestion", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.Quiz", "Quiz")
+                        .WithMany("Questions")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationRoleClaim", b =>
@@ -413,6 +615,33 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.Navigation("Tokens");
 
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Course", b =>
+                {
+                    b.Navigation("Lections");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.CourseLection", b =>
+                {
+                    b.Navigation("Quizes");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.CourseStudying", b =>
+                {
+                    b.Navigation("Courses");
+
+                    b.Navigation("Students");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Quiz", b =>
+                {
+                    b.Navigation("Questions");
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.QuizQuestion", b =>
+                {
+                    b.Navigation("Answers");
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationRole", b =>

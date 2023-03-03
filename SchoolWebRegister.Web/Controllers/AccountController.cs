@@ -55,9 +55,10 @@ namespace SchoolWebRegister.Web.Controllers
         }
 
         [AllowAnonymous]
+        [HttpPost]
         public IActionResult ResetPassword()
         {
-            return Ok();
+            return Ok("Вы успешно сбросили пароль!");
         }
 
         [Authorize]
