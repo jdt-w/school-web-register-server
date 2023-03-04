@@ -11,16 +11,18 @@ namespace SchoolWebRegister.Services.Authentication
     public sealed class DefaultAuthenticationService : IAuthenticationService
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
-        public DefaultAuthenticationService(SignInManager<ApplicationUser> signInManager)
+        private readonly HttpContext _context;
+        public DefaultAuthenticationService(SignInManager<ApplicationUser> signInManager, IHttpContextAccessor contextAccessor)
         {
             _signInManager = signInManager;
+            _context = contextAccessor.HttpContext;
         }
 
         public bool IsAuthenticated(ClaimsPrincipal user)
         {
             return user.Identity.IsAuthenticated;
         }
-        public async Task<IActionResult> SignIn(HttpContext context, ApplicationUser user, string password, bool isPersistent, bool lockOutOnFailure)
+        public async Task<IActionResult> SignIn(ApplicationUser user, string password, bool isPersistent, bool lockOutOnFailure)
         {
             ClaimsPrincipal claimsPrincipal = await _signInManager.CreateUserPrincipalAsync(user);
             AuthenticationProperties authProperties = new AuthenticationProperties
@@ -33,7 +35,7 @@ namespace SchoolWebRegister.Services.Authentication
             var signInResult = await _signInManager.CheckPasswordSignInAsync(user, password, lockOutOnFailure);
             if (signInResult.Succeeded)
             {
-                await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal, authProperties);
+                await _context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, claimsPrincipal, authProperties);
                 return new OkObjectResult("Authenticated");
             }
             return new UnauthorizedResult();

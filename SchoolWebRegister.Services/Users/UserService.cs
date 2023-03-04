@@ -17,6 +17,8 @@ namespace SchoolWebRegister.Services.Users
 
         private async Task<ApplicationUser?> ValidateIfUserExist(string userId)
         {
+            if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException();
+
             var existingEntity = await _userManager.FindByIdAsync(userId);
             if (existingEntity != null)
                 throw new DuplicateNameException("Пользователь с таким Id уже существует.");
@@ -24,6 +26,8 @@ namespace SchoolWebRegister.Services.Users
         }
         private async Task<ApplicationUser?> ValidateIfUserNotExist(string userId)
         {
+            if (string.IsNullOrEmpty(userId)) throw new ArgumentNullException();
+
             var existingEntity = await _userManager.FindByIdAsync(userId);
             if (existingEntity == null)
                 throw new ObjectNotFoundException("Пользователя с таким Id не существует.");

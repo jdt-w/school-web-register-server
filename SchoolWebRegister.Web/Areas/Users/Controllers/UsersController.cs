@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolWebRegister.Domain.Entity;
+using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Authentication.JWT;
 using SchoolWebRegister.Services.Users;
 using SchoolWebRegister.Web.ViewModels.Account;
@@ -22,16 +23,6 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             _userService = userService;
             _authenticationService = authenticationService;
             _logger = logger;
-        }
-
-        private void ReturnInvalidTokens()
-        {
-            CookieOptions options = new CookieOptions
-            {
-                Expires = DateTimeOffset.UtcNow.AddDays(-1),
-                MaxAge = TimeSpan.Zero
-            };
-            _authenticationService.AppendInvalidCookies(HttpContext, options);
         }
 
         [AllowAnonymous]
@@ -59,14 +50,11 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
                     var accessToken = await _authenticationService.CreateAccessJwtToken(user);
                     var refreshToken = await _authenticationService.CreateRefreshJwtToken(user, model.RememberMe);
 
-                    _authenticationService.AppendCookies(HttpContext, accessToken, refreshToken);
+                    await _authenticationService.SignIn(user, accessToken, refreshToken);
 
                     _logger.LogInformation($"User {user.UserName} authenticated!", nameof(Login));
                     
-                    return Ok(new
-                    {
-                        response = new JWTAuthenticationResponse(user)
-                    });
+                    return Ok(new AuthenticationResponse(user));
                 }
                 ModelState.AddModelError(nameof(LoginViewModel.UserName), "Неверный логин или пароль");
             }
@@ -88,7 +76,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             var refreshResult = await _authenticationService.ValidateAndDecode(refreshToken);
             if (!refreshResult.IsValid)
             {
-                ReturnInvalidTokens();
+                await _authenticationService.SignOut();
                 return Unauthorized();
             }
             
@@ -102,7 +90,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
                 if (user == null) return Unauthorized();
 
                 var newAccessToken = await _authenticationService.CreateAccessJwtToken(user);
-                _authenticationService.AppendCookies(HttpContext, newAccessToken, refreshResult.SecurityToken);
+                await _authenticationService.SignIn(user, newAccessToken, refreshResult.SecurityToken);
             }
             return Ok();
         }
@@ -131,7 +119,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ApplicationUser?> GetById(string id)
+        public async Task<ApplicationUser?> GetUserById(string id)
         {
             return await _userService.GetUserById(id);
         }
@@ -140,9 +128,9 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         [HttpPost]
         [Route("/users/logout")]
         //[ValidateAntiForgeryToken]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
-            ReturnInvalidTokens();
+            await _authenticationService.SignOut();
             return Content("Status Code 440: Authentication token expired.");
         }
     }

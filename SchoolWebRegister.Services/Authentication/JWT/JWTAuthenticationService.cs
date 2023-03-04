@@ -19,7 +19,9 @@ namespace SchoolWebRegister.Services.Authentication.JWT
         private readonly double _refreshDefaultValidityInDays;
         private readonly double _refreshSmallValidityInDays;
         private readonly IUserService _userService;
-        public JWTAuthenticationService(IConfiguration config, IUserService userService)
+        private readonly HttpContext _context;
+
+        public JWTAuthenticationService(IConfiguration config, IUserService userService, IHttpContextAccessor contextAccessor)
         {
             _validIssuer = config["JWT:ValidIssuer"];
             _validAudience = config["JWT:ValidAudience"];
@@ -28,8 +30,25 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             _refreshDefaultValidityInDays = double.Parse(config["JWT:RefreshTokenDefaultValidityInDays"]);
             _refreshSmallValidityInDays = double.Parse(config["JWT:RefreshTokenSmallValidityInDays"]);
             _userService = userService;
+            _context = contextAccessor.HttpContext;
         }
 
+        private void AppendCookies(SecurityToken accessToken, SecurityToken refreshToken)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            _context.Response.Cookies.Append("accessToken", tokenHandler.WriteToken(accessToken));
+            _context.Response.Cookies.Append("refreshToken", tokenHandler.WriteToken(refreshToken));
+        }
+        private void AppendInvalidCookies()
+        {
+            CookieOptions options = new CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddDays(-1),
+                MaxAge = TimeSpan.Zero
+            };
+            _context.Response.Cookies.Append("accessToken", string.Empty, options);
+            _context.Response.Cookies.Append("refreshToken", string.Empty, options);
+        }
         public async Task<TokenValidationResult> ValidateAndDecode(string jwtToken)
         {
             try
@@ -108,29 +127,16 @@ namespace SchoolWebRegister.Services.Authentication.JWT
                 signingCredentials: signingCredentials);
             return jwtSecurityToken;
         }
-        public void AppendCookies(HttpContext context, SecurityToken accessToken, SecurityToken refreshToken)
-        {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            context.Response.Cookies.Append("accessToken", tokenHandler.WriteToken(accessToken));
-            context.Response.Cookies.Append("refreshToken", tokenHandler.WriteToken(refreshToken));
-        }
-        public void AppendInvalidCookies(HttpContext context, CookieOptions options)
-        {
-            context.Response.Cookies.Append("accessToken", string.Empty, options);
-            context.Response.Cookies.Append("refreshToken", string.Empty, options);
-        }
 
         public bool IsAuthenticated(ClaimsPrincipal user)
         {
             return user.Identity.IsAuthenticated;
         }
-        public Task<IActionResult> SignIn(HttpContext context, ApplicationUser user, string password, bool isPersistent, bool lockOutOnFailure)
+        public async Task<IActionResult> SignIn(ApplicationUser user, SecurityToken accessToken, SecurityToken refreshToken)
         {
-            throw new NotImplementedException();
+            AppendCookies(accessToken, refreshToken);
+            return await Task.FromResult(new OkObjectResult(new AuthenticationResponse(user)));
         }
-        public Task SignOut()
-        {
-            throw new NotImplementedException();
-        }
+        public async Task SignOut() => await Task.Run(AppendInvalidCookies);
     }
 }
