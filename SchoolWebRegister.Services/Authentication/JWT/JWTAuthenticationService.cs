@@ -12,39 +12,42 @@ namespace SchoolWebRegister.Services.Authentication.JWT
 {
     public sealed class JWTAuthenticationService : IAuthenticationService
     {
-        private readonly string _validIssuer;
-        private readonly string _validAudience;
-        private readonly string _key;
-        private readonly double _validityInDays;
+        private readonly string? _validIssuer;
+        private readonly string? _validAudience;
+        private readonly SymmetricSecurityKey _key;
+        private readonly double _accessValidityInDays;
+        private readonly double _refreshDefaultValidityInDays;
+        private readonly double _refreshSmallValidityInDays;
         private readonly IUserService _userService;
         public JWTAuthenticationService(IConfiguration config, IUserService userService)
         {
             _validIssuer = config["JWT:ValidIssuer"];
             _validAudience = config["JWT:ValidAudience"];
-            _key = config["JWT:Key"];
-            _validityInDays = double.Parse(config["JWT:AccessTokenValidityInDays"]);
+            _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JWT:Key"]));
+            _accessValidityInDays = double.Parse(config["JWT:AccessTokenValidityInDays"]);
+            _refreshDefaultValidityInDays = double.Parse(config["JWT:RefreshTokenDefaultValidityInDays"]);
+            _refreshSmallValidityInDays = double.Parse(config["JWT:RefreshTokenSmallValidityInDays"]);
             _userService = userService;
         }
 
-        private async Task<JwtSecurityToken> ValidateAndDecode(string jwtToken, IEnumerable<SecurityKey> signingKeys)
+        public async Task<TokenValidationResult> ValidateAndDecode(string jwtToken)
         {
-            var validationParameters = new TokenValidationParameters
-            {
-                ClockSkew = TimeSpan.FromMinutes(5),
-                IssuerSigningKeys = signingKeys,
-                RequireSignedTokens = true,
-                RequireExpirationTime = true,
-                ValidateLifetime = true,
-                ValidateAudience = true,
-                ValidAudience = _validAudience,
-                ValidateIssuer = true,
-                ValidIssuer = _validIssuer
-            };
-
             try
             {
-                var rawValidatedToken = await new JwtSecurityTokenHandler().ValidateTokenAsync(jwtToken, validationParameters);
-                return (JwtSecurityToken)rawValidatedToken.SecurityToken;
+                var validationParameters = new TokenValidationParameters
+                {
+                    ClockSkew = TimeSpan.Zero,
+                    IssuerSigningKeys = new[] { _key },
+                    RequireSignedTokens = true,
+                    RequireExpirationTime = true,
+                    ValidateLifetime = true,
+                    ValidateAudience = true,
+                    ValidAudience = _validAudience,
+                    ValidateIssuer = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = _validIssuer
+                };
+                return await new JwtSecurityTokenHandler().ValidateTokenAsync(jwtToken, validationParameters);
             }
             catch (SecurityTokenValidationException stvex)
             {
@@ -55,7 +58,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
                 throw new Exception($"Token was invalid: {argex.Message}");
             }
         }
-        public async Task<string> CreateJwtToken(ApplicationUser user)
+        public async Task<JwtSecurityToken> CreateAccessJwtToken(ApplicationUser user)
         {
             var roles = await _userService.GetUserRoles(user);
             var roleClaims = roles.Select(role => new Claim("roles", role));
@@ -63,19 +66,58 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("uid", user.Id)
+                new Claim("uid", user.Id),
+                new Claim("username", user.UserName)
             }
             .Union(roleClaims);
 
-            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));
-            var signingCredentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256);
+            DateTime now = DateTime.UtcNow;
+
+            var signingCredentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256);
             var jwtSecurityToken = new JwtSecurityToken(
                 issuer: _validIssuer,
                 audience: _validAudience,
+                notBefore: now,
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(_validityInDays),
+                expires: now.AddDays(_accessValidityInDays),
                 signingCredentials: signingCredentials);
-            return new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+            return jwtSecurityToken;
+        }
+        public async Task<JwtSecurityToken> CreateRefreshJwtToken(ApplicationUser user, bool rememberMe = true)
+        {
+            var roles = await _userService.GetUserRoles(user);
+            var roleClaims = roles.Select(role => new Claim("roles", role));
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("uid", user.Id),
+                new Claim("username", user.UserName)
+            }
+            .Union(roleClaims);
+
+            DateTime now = DateTime.UtcNow;
+
+            var signingCredentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256);
+            var jwtSecurityToken = new JwtSecurityToken(
+                issuer: _validIssuer,
+                audience: _validAudience,
+                notBefore: now,
+                claims: claims,
+                expires: now.AddDays(rememberMe ? _refreshDefaultValidityInDays : _refreshSmallValidityInDays),
+                signingCredentials: signingCredentials);
+            return jwtSecurityToken;
+        }
+        public void AppendCookies(HttpContext context, SecurityToken accessToken, SecurityToken refreshToken)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            context.Response.Cookies.Append("accessToken", tokenHandler.WriteToken(accessToken));
+            context.Response.Cookies.Append("refreshToken", tokenHandler.WriteToken(refreshToken));
+        }
+        public void AppendInvalidCookies(HttpContext context, CookieOptions options)
+        {
+            context.Response.Cookies.Append("accessToken", string.Empty, options);
+            context.Response.Cookies.Append("refreshToken", string.Empty, options);
         }
 
         public bool IsAuthenticated(ClaimsPrincipal user)

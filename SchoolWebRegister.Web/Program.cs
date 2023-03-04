@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using SchoolWebRegister.DAL;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services;
@@ -39,18 +40,16 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services
-    .AddAuthentication()
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
-        options.RequireHttpsMetadata = false;
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.Zero
-        };
+        options.RequireHttpsMetadata = true;
+        options.SaveToken = true;
     });
 builder.Services.AddAuthorization(options =>
 {
@@ -64,6 +63,9 @@ builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
 builder.Services.AddScoped<JWTAuthenticationService>();
 
 var app = builder.Build();
+
+var provider = builder.Services.BuildServiceProvider();
+SchoolWebRegister.Tests.Helpers.DatabaseSeeder.Initialize(provider);
 
 if (app.Environment.IsDevelopment())
 {
@@ -80,7 +82,11 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseCookiePolicy();
+app.UseCookiePolicy(new CookiePolicyOptions
+{
+    HttpOnly = HttpOnlyPolicy.Always,
+    Secure = CookieSecurePolicy.Always
+});
 app.UseAuthentication();
 app.UseAuthorization();
 

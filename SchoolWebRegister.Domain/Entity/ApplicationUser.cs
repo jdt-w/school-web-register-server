@@ -7,7 +7,7 @@ namespace SchoolWebRegister.Domain.Entity
     [Index(nameof(Id), IsUnique = true)]
     public sealed class ApplicationUser : IdentityUser
     {
-        public int ProfileId { get; set; }
+        public Profile? Profile { get; set; }
         public ICollection<ApplicationUserClaim> Claims { get; set; }
         public ICollection<ApplicationUserLogin> Logins { get; set; }
         public ICollection<ApplicationUserToken> Tokens { get; set; }

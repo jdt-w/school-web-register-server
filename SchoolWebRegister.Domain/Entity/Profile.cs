@@ -16,11 +16,14 @@ namespace SchoolWebRegister.Domain.Entity
     {
         public string Id { get; set; }
 
+        public string UserId { get; set; }
+        public ApplicationUser? User { get; set; }
+
         [MaxLength(30)]
         public string FirstName { get; set; }
 
         [MaxLength(80)]
-        public string SecondName { get; set; }
+        public string? SecondName { get; set; }
 
         [MaxLength(100)]
         public string? FamilyName { get; set; }

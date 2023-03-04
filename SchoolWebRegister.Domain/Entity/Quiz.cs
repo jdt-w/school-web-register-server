@@ -8,10 +8,10 @@ namespace SchoolWebRegister.Domain.Entity
     [Index(nameof(Id), IsUnique = true)]
     public sealed class Quiz
     {
-        public string Id { get; set; }
+        public int Id { get; set; }
 
         [MaxLength(100)]
-        public string Title { get; set; }
+        public string? Title { get; set; }
 
         [MaxLength(200)]
         public string? Description { get; set; }
@@ -32,11 +32,13 @@ namespace SchoolWebRegister.Domain.Entity
     [PrimaryKey(nameof(QuestionId))]
     public sealed class QuizQuestion
     {
-        public string QuestionId { get; set; }
+        public int QuestionId { get; set; }
+
+        public int QuizId { get; set; } 
         public Quiz Quiz { get; set; }
 
         [MaxLength(300)]
-        public string Text { get; set; }
+        public string? Text { get; set; }
         public bool MultiChoice { get; set; }
         public ICollection<QuizAnswer> Answers { get; set; }
     }
@@ -45,13 +47,25 @@ namespace SchoolWebRegister.Domain.Entity
     [PrimaryKey(nameof(AnswerId))]
     public sealed class QuizAnswer
     {
-        public string AnswerId { get; set; }
+        public int AnswerId { get; set; }
 
         [MaxLength(100)]
-        public string Text { get; set; }
+        public string? Text { get; set; }
         public bool IsCorrect { get; set; }
 
-        public string QuestionId { get; set; }
+        public int QuestionId { get; set; }
         public QuizQuestion Question { get; set; }
+    }
+
+    [PrimaryKey(nameof(QuizId), nameof(StudentId))]
+    public sealed class QuizAttempts
+    {
+        public int QuizId { get; set; }
+        public Quiz? Quiz { get; set; }
+        public string StudentId { get; set; }
+        public Student? Student { get; set; }
+
+        [Column(TypeName = "smallint")]
+        public ushort Mark { get; set; }
     }
 }
