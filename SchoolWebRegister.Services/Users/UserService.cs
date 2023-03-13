@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Data.Entity.Core;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
 
@@ -129,16 +128,15 @@ namespace SchoolWebRegister.Services.Users
                 };
             }
         }
-        public async Task<IEnumerable<ApplicationUser>> GetUsers()
+        public IQueryable<ApplicationUser> GetUsers()
         {
             try
             {
-                var list = await _userManager.Users.ToListAsync();
-                return list;
+                return _userManager.Users.AsQueryable();
             }
             catch (Exception ex)
             {
-                return Enumerable.Empty<ApplicationUser>();
+                return Enumerable.Empty<ApplicationUser>().AsQueryable();
             }
         }
         public async Task<IList<string>> GetUserRoles(ApplicationUser user)

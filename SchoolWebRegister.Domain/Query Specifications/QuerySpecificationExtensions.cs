@@ -2,12 +2,11 @@
 
 namespace SchoolWebRegister.Domain.Specifications
 {
-    public static class QuerySpecificationBuilder<T> where T : class
+    public static class QuerySpecificationExtensions
     {
-        public static IQueryable<T> Build(IQueryable<T> inputQuery, ISpecification<T> specification)
+        public static IQueryable<T> Specify<T>(this IQueryable<T> query, ISpecification<T> specification) 
+            where T : class
         {
-            IQueryable<T> query = inputQuery;
-
             // Modify the IQueryable using the specification's criteria expression
             if (specification.Criteria != null)
             {

@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Users;
 
 namespace SchoolWebRegister.Web.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = nameof(UserRole.Administrator))]
+    [Authorize(Policy = "Admin")]
     public sealed class HomeController : Controller
     {
         private readonly IUserService _userService;
@@ -17,7 +16,7 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
 
         public IActionResult Index()
         {
-            return View(_userService.GetUsers().Result);
+            return View(_userService.GetUsers());
         }
     }
 }

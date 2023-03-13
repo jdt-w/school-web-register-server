@@ -5,6 +5,8 @@ using SchoolWebRegister.Services.Users;
 
 namespace SchoolWebRegister.Web.Areas.Admin.Controllers
 {
+    [Area("Admin")]
+    [Authorize(Policy = "Admin")]
     public sealed class UserController : Controller
     {
         private readonly IUserService _usersService;
@@ -13,7 +15,6 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
             _usersService = userService;
         }
 
-        [Authorize(Roles = nameof(UserRole.Administrator))]
         public async Task<IActionResult> DeleteUser(ApplicationUser user)
         {
             var response = await _usersService.DeleteUser(user);
@@ -23,8 +24,6 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
             }
             return RedirectToAction("Error");
         }
-
-        [Authorize(Roles = nameof(UserRole.Administrator))]
         public async Task<IActionResult> CreateUser(ApplicationUser user)
         {
             var response = await _usersService.CreateUser(user);
@@ -33,11 +32,6 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
                 return RedirectToAction("GetUsers");
             }
             return RedirectToAction("Error");
-        }
-
-        public IActionResult Index()
-        {
-            return View();
         }
     }
 }

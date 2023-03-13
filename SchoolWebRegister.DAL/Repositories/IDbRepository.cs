@@ -6,7 +6,7 @@ namespace SchoolWebRegister.DAL.Repositories
     public interface IDbRepository<T>
     {
         Task<T> AddAsync(T entity);
-        IQueryable<T> ApplySpecification(ISpecification<T> spec);
+        IQueryable<T> Specify(ISpecification<T> spec);
         Task DeleteAsync(T entity);
         Task<IEnumerable<T>> SelectAsync();
         Task<IEnumerable<T>> SelectAsync(ISpecification<T> spec);

@@ -38,9 +38,10 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         [AllowAnonymous]
         [HttpPost]
         [Route("/users/login")]
-        // [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        public async Task<IActionResult> Login([FromBody] LoginViewModel model)
         {
+            if (model == null) return Unauthorized();
+
             if (ModelState.IsValid)
             {
                 ApplicationUser? user = await _userService.GetUserByLogin(model.UserName);
@@ -63,8 +64,21 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
 
         [AllowAnonymous]
         [HttpPost]
+        [Route("/users/login")]
+        public async Task<IActionResult> Login(IFormCollection form)
+        {
+            if (form == null) return Unauthorized();
+
+            return await Login(new LoginViewModel
+            {
+                UserName = form["UserName"],
+                UserPassword = form["UserPassword"],
+                RememberMe = bool.Parse(form["RememberMe"])
+            });
+        }
+
+        [HttpPost]
         [Route("/users/authenticate")]
-        // [ValidateAntiForgeryToken]
         public async Task<IActionResult> Authenticate()
         {
             string? accessToken = Request.Cookies["accessToken"];
@@ -112,22 +126,9 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             return Ok();
         }
 
-        [HttpGet]
-        public async Task<IEnumerable<ApplicationUser>> GetAllUsers()
-        {
-            return await _userService.GetUsers();
-        }
-
-        [HttpGet("{id}")]
-        public async Task<ApplicationUser?> GetUserById(string id)
-        {
-            return await _userService.GetUserById(id);
-        }
-
         [AllowAnonymous]
         [HttpPost]
         [Route("/users/logout")]
-        //[ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await _authenticationService.SignOut();

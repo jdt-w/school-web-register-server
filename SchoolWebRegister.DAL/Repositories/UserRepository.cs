@@ -2,15 +2,11 @@
 
 namespace SchoolWebRegister.DAL.Repositories
 {
-    public sealed class CourseRepository : BaseRepository<Course>
+    public sealed class UserRepository : BaseRepository<ApplicationUser>, IUserRepository
     {
-        public CourseRepository(ApplicationDbContext db) : base(db) { }
+        public UserRepository(ApplicationDbContext db) : base(db) { }
 
-        public async Task<float> GetUserProgressAsync(ApplicationUser user, string courseId)
-        {
-            throw new NotImplementedException();
-        }
-        public async Task<IEnumerable<ApplicationUser>> GetUserListAsync()
+        public Task<ApplicationUser?> GetUserByLoginAsync(string login)
         {
             throw new NotImplementedException();
         }

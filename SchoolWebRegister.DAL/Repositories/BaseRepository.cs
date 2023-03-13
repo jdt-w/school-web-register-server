@@ -19,13 +19,13 @@ namespace SchoolWebRegister.DAL.Repositories
             await _dbContext.SaveChangesAsync();
             return entity;
         }
-        public IQueryable<T> ApplySpecification(ISpecification<T> spec)
+        public IQueryable<T> Specify(ISpecification<T> spec)
         {
-            return QuerySpecificationBuilder<T>.Build(_dbContext.Set<T>().AsQueryable(), spec);
+            return _dbContext.Set<T>().AsQueryable().Specify(spec);
         }
         public async Task<int> CountAsync(ISpecification<T> spec)
         {
-            return await ApplySpecification(spec).CountAsync();
+            return await Specify(spec).CountAsync();
         }
         public async Task DeleteAsync(T entity)
         {
@@ -42,7 +42,7 @@ namespace SchoolWebRegister.DAL.Repositories
         }
         public async Task<IEnumerable<T>> SelectAsync(ISpecification<T> spec)
         {
-            return await ApplySpecification(spec).ToListAsync();
+            return await Specify(spec).ToListAsync();
         }
         public async Task<IEnumerable<T>> SelectAsync(Expression<Func<T, bool>> predicate)
         {

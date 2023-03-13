@@ -12,6 +12,6 @@ namespace SchoolWebRegister.Services.Users
         Task<ApplicationUser?> GetUserByLogin(string login);
         Task<IList<string>> GetUserRoles(ApplicationUser user);
         Task<BaseResponse<ApplicationUser>> UpdateUser(ApplicationUser user);
-        Task<IEnumerable<ApplicationUser>> GetUsers();
+        IQueryable<ApplicationUser> GetUsers();
     }
 }
