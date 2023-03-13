@@ -1,3 +1,5 @@
+using System.Text;
+using HotChocolate;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.CookiePolicy;
@@ -10,8 +12,8 @@ using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Authentication.JWT;
+using SchoolWebRegister.Services.GraphQL;
 using SchoolWebRegister.Services.Users;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,7 +75,13 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AllUsers", policy => policy.RequireAuthenticatedUser());
 });
 
-builder.Services.AddControllersWithViews();
+builder.Services
+    .AddGraphQLServer()
+    .AddQueryType<UsersQueries>()
+    .AddProjections()
+    .AddFiltering()
+    .AddSorting();
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -107,6 +115,11 @@ app.UseCookiePolicy(new CookiePolicyOptions
 });
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGraphQL("/graphql").RequireAuthorization(options =>
+{
+    options.RequireAuthenticatedUser();
+});
 
 app.MapAreaControllerRoute(
     name: "AdminArea",

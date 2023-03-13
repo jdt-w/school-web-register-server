@@ -17,27 +17,6 @@ namespace SchoolWebRegister.DAL
 
             modelBuilder.Entity<ApplicationUser>(b =>
             {
-                // Each User can have many UserClaims
-                b.HasMany(e => e.Claims)
-                    .WithOne(e => e.User)
-                    .HasForeignKey(uc => uc.UserId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // Each User can have many UserLogins
-                b.HasMany(e => e.Logins)
-                    .WithOne(e => e.User)
-                    .HasForeignKey(ul => ul.UserId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // Each User can have many UserTokens
-                b.HasMany(e => e.Tokens)
-                    .WithOne(e => e.User)
-                    .HasForeignKey(ut => ut.UserId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
-
                 // Each User can have many entries in the UserRole join table
                 b.HasMany(e => e.UserRoles)
                     .WithOne(e => e.User)
@@ -51,22 +30,6 @@ namespace SchoolWebRegister.DAL
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<ApplicationRole>(b =>
-            {
-                // Each Role can have many entries in the UserRole join table
-                b.HasMany(e => e.UserRoles)
-                    .WithOne(e => e.Role)
-                    .HasForeignKey(ur => ur.RoleId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // Each Role can have many associated RoleClaims
-                b.HasMany(e => e.RoleClaims)
-                    .WithOne(e => e.Role)
-                    .HasForeignKey(rc => rc.RoleId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
 
             modelBuilder.Entity<Quiz>(b =>
             {
