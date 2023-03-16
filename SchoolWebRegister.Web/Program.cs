@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SchoolWebRegister.DAL;
 using SchoolWebRegister.DAL.Repositories;
+using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
@@ -78,9 +79,12 @@ builder.Services.AddAuthorization(options =>
 builder.Services
     .AddGraphQLServer()
     .AddQueryType<UsersQueries>()
+    .AddMutationType<Mutations>()
     .AddProjections()
     .AddFiltering()
-    .AddSorting();
+    .AddSorting()
+    .AddType<BaseResponse>()
+    .AddAuthorization();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
@@ -116,10 +120,7 @@ app.UseCookiePolicy(new CookiePolicyOptions
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGraphQL("/graphql").RequireAuthorization(options =>
-{
-    options.RequireAuthenticatedUser();
-});
+app.MapGraphQL("/graphql");
 
 app.MapAreaControllerRoute(
     name: "AdminArea",

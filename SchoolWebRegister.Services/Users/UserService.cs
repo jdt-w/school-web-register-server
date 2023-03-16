@@ -1,8 +1,11 @@
 ﻿using System.Data;
 using System.Data.Entity.Core;
+using System.Security.Claims;
+using GreenDonut;
 using Microsoft.AspNetCore.Identity;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
+using SchoolWebRegister.Domain.Permissions;
 
 namespace SchoolWebRegister.Services.Users
 {
@@ -150,6 +153,68 @@ namespace SchoolWebRegister.Services.Users
             catch (Exception ex)
             {
                 return new List<string>();
+            }
+        }
+        public async Task GrantPermission(ApplicationUser user, params Permissions[] permissions)
+        {
+            foreach (Permissions permission in permissions)
+            {
+                string str = string.Concat(permission.GetType().Namespace, ".", permission.ToString());
+                await _userManager.AddClaimAsync(user, new Claim("permission", str));
+            }
+        }
+        public async Task AddClaims(ApplicationUser user, IEnumerable<Claim> claims)
+        {
+            await _userManager.AddClaimsAsync(user, claims);
+        }
+        public async Task AddToRoles(ApplicationUser user, IEnumerable<UserRole> roles)
+        {
+            await _userManager.AddToRolesAsync(user, roles.Select(x => x.ToString()));
+
+            var claims = roles.Select(x => new Claim(ClaimTypes.Role, x.ToString()));
+            await AddClaims(user, claims);
+        }
+        public async Task<BaseResponse<bool>> ChangePassword(ApplicationUser user, string newPassword)
+        {
+            try
+            {
+                bool isValid = await _userManager.CheckPasswordAsync(user, newPassword);
+
+                if (!isValid)
+                {
+                    return new BaseResponse<bool>
+                    {
+                        StatusCode = StatusCode.Forbidden,
+                        Description = "New password doesn't match security requirements."
+                    };
+                }
+
+                string newPasswordHash = _userManager.PasswordHasher.HashPassword(user, newPassword);
+                if (!newPasswordHash.Equals(user.PasswordHash))
+                {
+                    user.PasswordHash = newPasswordHash;
+                    var result = await UpdateUser(user);
+                    return new BaseResponse<bool>
+                    {
+                        Data = result.StatusCode == StatusCode.Successful ? true : false,
+                        Description = result.Description,
+                        StatusCode = result.StatusCode
+                    };
+                }
+
+                return new BaseResponse<bool>
+                {
+                    Data = false,
+                    StatusCode = StatusCode.BadRequest,
+                    Description = "New password is already equals old password"
+                };
+            }
+            catch
+            {
+                return new BaseResponse<bool>
+                {
+                    StatusCode = StatusCode.InternalServerError
+                };
             }
         }
     }

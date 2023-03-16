@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using SchoolWebRegister.DAL;
 using SchoolWebRegister.Domain.Entity;
+using SchoolWebRegister.Services.Users;
+using SchoolWebRegister.Domain.Permissions;
 
 namespace SchoolWebRegister.Tests.Helpers
 {
@@ -16,7 +18,7 @@ namespace SchoolWebRegister.Tests.Helpers
             if (context.Set<ApplicationUser>().Any()) return;
 
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var userService = serviceProvider.GetRequiredService<IUserService>();
 
             IEnumerable<UserRole> roles = new[] { UserRole.Guest, UserRole.Administrator };
 
@@ -40,16 +42,15 @@ namespace SchoolWebRegister.Tests.Helpers
 
             if (result.Result.Succeeded)
             {
-                userManager.AddToRolesAsync(user, roles.Select(x => x.ToString())).GetAwaiter().GetResult();
+                userService.AddToRoles(user, roles).GetAwaiter().GetResult();
 
                 List<Claim> claims = new()
                 {
                     new Claim(ClaimTypes.Name, user.UserName),
                     new Claim(ClaimTypes.Email, user.Email)
                 };
-                claims.AddRange(roles.Select(x => new Claim(ClaimTypes.Role, x.ToString())));
-
-                userManager.AddClaimsAsync(user, claims).GetAwaiter().GetResult();
+                userService.AddClaims(user, claims).GetAwaiter().GetResult();
+                userService.GrantPermission(user, Permissions.Read).GetAwaiter().GetResult();
             }
             await context.SaveChangesAsync();
         }

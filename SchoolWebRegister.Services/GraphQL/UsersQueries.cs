@@ -1,10 +1,11 @@
-﻿using SchoolWebRegister.Domain.Entity;
+﻿using HotChocolate.Data;
+using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Users;
 
 namespace SchoolWebRegister.Services.GraphQL
 {
-    public class UsersQueries
-    {
+    public sealed class UsersQueries
+    {     
         [UseProjection]
         [UseFiltering]
         [UseSorting]
