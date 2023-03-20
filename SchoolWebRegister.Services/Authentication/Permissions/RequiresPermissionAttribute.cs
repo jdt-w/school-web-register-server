@@ -1,7 +1,7 @@
 ﻿using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using AuthorizeAttribute = HotChocolate.Authorization.AuthorizeAttribute;
 
 namespace SchoolWebRegister.Domain.Permissions
 {

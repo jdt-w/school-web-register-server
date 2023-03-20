@@ -19,7 +19,7 @@ namespace SchoolWebRegister.Services.GraphQL
                 .Type<T>();
         }
     }
-    public class GenericResponseType<T> : ObjectType<BaseResponse<T>> 
+    public class GenericResponseType<T> : ObjectType<BaseResponse<T>>
     where T : class, IOutputType
     {
         protected override void Configure(
@@ -33,7 +33,7 @@ namespace SchoolWebRegister.Services.GraphQL
         }
     }
 
-    [Authorize]
+    [Authorize(Policy = "AllUsers")]
     public class Mutations
     {
         [RequiresPermission(Permissions.Edit)]
@@ -57,20 +57,14 @@ namespace SchoolWebRegister.Services.GraphQL
             user.UserName = newUserName;
 
             var result = await userService.UpdateUser(user);
-            if (result.StatusCode == StatusCode.Successful)
-                return new BaseResponse
-                {
-                    StatusCode = StatusCode.Successful,
-                    Data = result.Data,
-                };
-            else
-                return new BaseResponse
-                {
-                    StatusCode = result.StatusCode,
-                    Description = "Unexpected database internal error."
-                };
+            return new BaseResponse
+            {
+                Description = result.Description,
+                StatusCode = result.StatusCode,
+                Data = result.Data
+            };
         }
-        
+
         [RequiresPermission(Permissions.Edit)]
         public async Task<BaseResponse> UpdateUserPassword([Service] IUserService userService, [ID] string guid, string newUserPassword)
         {

@@ -10,6 +10,6 @@ namespace SchoolWebRegister.Services.Courses
         Task<BaseResponse<bool>> ExpelStudent(int courseId, string studentId);
         Task DeleteCourse(int courseId);
         Task<int> GetStudentsCount(int courseId);
-        Task<IEnumerable<ApplicationUser>> GetStudentsList(int courseId);
+        IQueryable<ApplicationUser> GetStudentsList(int courseId);
     }
 }

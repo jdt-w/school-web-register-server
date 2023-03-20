@@ -1,5 +1,7 @@
-using System.Text;
 using HotChocolate;
+using HotChocolate.AspNetCore.Serialization;
+using HotChocolate.Execution.Serialization;
+using HotChocolate.Types.Pagination;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.CookiePolicy;
@@ -10,11 +12,13 @@ using SchoolWebRegister.DAL;
 using SchoolWebRegister.DAL.Repositories;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
+using SchoolWebRegister.Domain.Permissions;
 using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Authentication.JWT;
 using SchoolWebRegister.Services.GraphQL;
 using SchoolWebRegister.Services.Users;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,21 +40,21 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 .AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.HttpOnly = true;
-    options.LoginPath = "/users/login";
-    options.AccessDeniedPath = "/users/access-denied";
-    options.SlidingExpiration = true;
-    options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
-});
-
 builder.Services
     .AddAuthentication(options =>
     {
+        options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.Cookie.HttpOnly = true;
+        options.LoginPath = "/users/login";
+        options.AccessDeniedPath = "/users/access-denied";
+        options.SlidingExpiration = true;
+        options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
     })
     .AddJwtBearer(options =>
     {
@@ -70,21 +74,40 @@ builder.Services
         options.RequireHttpsMetadata = true;
         options.SaveToken = true;
     });
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole(nameof(UserRole.Administrator)));
     options.AddPolicy("AllUsers", policy => policy.RequireAuthenticatedUser());
 });
 
+var options = new HttpResponseFormatterOptions
+{
+    Json = new JsonResultFormatterOptions
+    {
+        Indented = true,
+        NullIgnoreCondition = JsonNullIgnoreCondition.All
+    }
+};
+
+builder.Services.AddHttpResponseFormatter(options);
 builder.Services
     .AddGraphQLServer()
+    .SetPagingOptions(new PagingOptions
+    {
+        MaxPageSize = 100
+    })
     .AddQueryType<UsersQueries>()
     .AddMutationType<Mutations>()
     .AddProjections()
     .AddFiltering()
     .AddSorting()
     .AddType<BaseResponse>()
-    .AddAuthorization();
+    .AddType<ApplicationUserType>()
+    .AddErrorFilter<GraphQLErrorFilter>()
+    .AddAuthorizationHandler<JWTAuthorizationFilter>();
+
+builder.Services.AddHttpResponseFormatter(indented: true);
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
@@ -111,17 +134,17 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
 app.UseCookiePolicy(new CookiePolicyOptions
 {
     HttpOnly = HttpOnlyPolicy.Always,
-    Secure = CookieSecurePolicy.Always
+    Secure = CookieSecurePolicy.Always,
+    MinimumSameSitePolicy = SameSiteMode.Strict
 });
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGraphQL("/graphql");
-
 app.MapAreaControllerRoute(
     name: "AdminArea",
     areaName: "Admin",

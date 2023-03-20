@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Data.Entity.Core;
 using System.Security.Claims;
-using GreenDonut;
 using Microsoft.AspNetCore.Identity;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
@@ -88,10 +87,9 @@ namespace SchoolWebRegister.Services.Users
         {
             try
             {
-                ApplicationUser? user = await ValidateIfUserNotExist(id);
-                return user;
+                return await ValidateIfUserNotExist(id);
             }
-            catch (Exception ex)
+            catch
             {
                 return null;
             }
@@ -101,10 +99,13 @@ namespace SchoolWebRegister.Services.Users
             try
             {
                 if (string.IsNullOrWhiteSpace(login)) throw new ArgumentNullException(nameof(login));
-                ApplicationUser? user = await _userManager.FindByNameAsync(login);                
-                return user;
+                
+                return await Task.FromResult(GetUsers()
+                    .Where(user => user.UserName.Equals(login))
+                    .AsEnumerable()
+                    .SingleOrDefault(user => user.UserName.Equals(login)));
             }
-            catch (Exception ex)
+            catch
             {
                 return null;
             }
@@ -137,7 +138,7 @@ namespace SchoolWebRegister.Services.Users
             {
                 return _userManager.Users.AsQueryable();
             }
-            catch (Exception ex)
+            catch
             {
                 return Enumerable.Empty<ApplicationUser>().AsQueryable();
             }
@@ -189,10 +190,11 @@ namespace SchoolWebRegister.Services.Users
                     };
                 }
 
-                string newPasswordHash = _userManager.PasswordHasher.HashPassword(user, newPassword);
-                if (!newPasswordHash.Equals(user.PasswordHash))
+                PasswordHasher<ApplicationUser> hasher = new PasswordHasher<ApplicationUser>();
+                string hash = hasher.HashPassword(user, newPassword);
+                if (!hash.SequenceEqual(user.PasswordHash))
                 {
-                    user.PasswordHash = newPasswordHash;
+                    user.PasswordHash = hash;
                     var result = await UpdateUser(user);
                     return new BaseResponse<bool>
                     {
@@ -215,6 +217,22 @@ namespace SchoolWebRegister.Services.Users
                 {
                     StatusCode = StatusCode.InternalServerError
                 };
+            }
+        }
+        public async Task<ApplicationUser?> ValidateCredentials(string? login, string? password)
+        {
+            try
+            {
+                ApplicationUser? user = await GetUserByLogin(login);
+
+                if (user == null || string.IsNullOrEmpty(user.PasswordHash)) return null;
+
+                bool isValid = await _userManager.CheckPasswordAsync(user, password);
+                return isValid ? user : null;
+            }
+            catch
+            {
+                return null;
             }
         }
     }

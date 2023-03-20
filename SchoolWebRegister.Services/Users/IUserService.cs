@@ -1,8 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.Security.Claims;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Domain.Permissions;
-using System.Security.Claims;
 
 namespace SchoolWebRegister.Services.Users
 {
@@ -18,6 +17,7 @@ namespace SchoolWebRegister.Services.Users
         Task GrantPermission(ApplicationUser user, params Permissions[] permissions);
         Task AddClaims(ApplicationUser user, IEnumerable<Claim> claims);
         Task AddToRoles(ApplicationUser user, IEnumerable<UserRole> roles);
+        Task<ApplicationUser?> ValidateCredentials(string? login, string? password);
         Task<BaseResponse<bool>> ChangePassword(ApplicationUser user, string newPassword);
         IQueryable<ApplicationUser> GetUsers();
     }

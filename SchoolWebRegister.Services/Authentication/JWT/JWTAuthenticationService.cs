@@ -33,11 +33,21 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             _context = contextAccessor.HttpContext;
         }
 
-        private void AppendCookies(SecurityToken accessToken, SecurityToken refreshToken)
+        private void AppendCookies(string accessToken, string refreshToken)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            _context.Response.Cookies.Append("accessToken", tokenHandler.WriteToken(accessToken));
-            _context.Response.Cookies.Append("refreshToken", tokenHandler.WriteToken(refreshToken));
+            CookieOptions accessOptions = new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddDays(_accessValidityInDays),
+                HttpOnly = true,
+            };
+            _context.Response.Cookies.Append("accessToken", accessToken, accessOptions);
+
+            CookieOptions refreshOptions = new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddDays(_refreshDefaultValidityInDays),
+                HttpOnly = true,
+            };
+            _context.Response.Cookies.Append("refreshToken", refreshToken, refreshOptions);
         }
         private void AppendInvalidCookies()
         {
@@ -132,9 +142,40 @@ namespace SchoolWebRegister.Services.Authentication.JWT
         {
             return user.Identity.IsAuthenticated;
         }
+        public async Task<IActionResult> Authenticate(string? accessToken, string? refreshToken)
+        {
+            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
+                return new UnauthorizedResult();
+
+            var refreshResult = await ValidateAndDecode(refreshToken);
+            if (!refreshResult.IsValid)
+            {
+                await SignOut();
+                return new UnauthorizedObjectResult("Refresh token is invalid.");
+            }
+
+            var accessResult = await ValidateAndDecode(accessToken);
+            if (!accessResult.IsValid)
+            {
+                var jwtSecurityToken = new JwtSecurityTokenHandler().ReadJwtToken(refreshToken);
+                string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("uid"))?.Value;
+                ApplicationUser? user = await _userService.GetUserById(userId);
+
+                if (user == null) return new UnauthorizedObjectResult("UID claim is invalid.");
+
+                var newAccessToken = await CreateAccessJwtToken(user);
+                await SignIn(user, newAccessToken, refreshResult.SecurityToken);
+            }
+            return new OkResult();
+        }
         public async Task<IActionResult> SignIn(ApplicationUser user, SecurityToken accessToken, SecurityToken refreshToken)
         {
-            AppendCookies(accessToken, refreshToken);
+            var tokenHandler = new JwtSecurityTokenHandler();
+            string accessStr = tokenHandler.WriteToken(accessToken);
+            string refreshStr = tokenHandler.WriteToken(refreshToken);
+
+            AppendCookies(accessStr, refreshStr);
+
             return await Task.FromResult(new OkObjectResult(new AuthenticationResponse(user)));
         }
         public async Task SignOut() => await Task.Run(AppendInvalidCookies);

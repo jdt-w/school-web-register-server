@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using HotChocolate;
 
 namespace SchoolWebRegister.Domain.Entity
 {
@@ -9,9 +8,7 @@ namespace SchoolWebRegister.Domain.Entity
     public sealed class ApplicationUser : IdentityUser
     {
         public Profile? Profile { get; set; }
-        [GraphQLIgnore]
         public ICollection<ApplicationUserRole> UserRoles { get; set; }
-        [GraphQLIgnore]
         public ICollection<ApplicationUserClaim> Claims { get; set; }
         public override string ToString()
         {

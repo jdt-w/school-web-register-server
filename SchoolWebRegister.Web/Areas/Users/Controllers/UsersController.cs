@@ -1,5 +1,4 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Authentication;
@@ -44,7 +43,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
 
             if (ModelState.IsValid)
             {
-                ApplicationUser? user = await _userService.GetUserByLogin(model.UserName);
+                ApplicationUser? user = await _userService.ValidateCredentials(model.UserName, model.UserPassword);
 
                 if (user != null)
                 {
@@ -69,11 +68,13 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         {
             if (form == null) return Unauthorized();
 
+            bool rememberMe = bool.TryParse(form["RememberMe"], out rememberMe);
+
             return await Login(new LoginViewModel
             {
                 UserName = form["UserName"],
                 UserPassword = form["UserPassword"],
-                RememberMe = bool.Parse(form["RememberMe"])
+                RememberMe = rememberMe
             });
         }
 
@@ -84,29 +85,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             string? accessToken = Request.Cookies["accessToken"];
             string? refreshToken = Request.Cookies["refreshToken"];
 
-            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken)) 
-                return Unauthorized();
-
-            var refreshResult = await _authenticationService.ValidateAndDecode(refreshToken);
-            if (!refreshResult.IsValid)
-            {
-                await _authenticationService.SignOut();
-                return Unauthorized();
-            }
-            
-            var accessResult = await _authenticationService.ValidateAndDecode(accessToken);
-            if (!accessResult.IsValid)
-            {
-                var jwtSecurityToken = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
-                string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("uid"))?.Value;
-                ApplicationUser? user = await _userService.GetUserById(userId);
-
-                if (user == null) return Unauthorized();
-
-                var newAccessToken = await _authenticationService.CreateAccessJwtToken(user);
-                await _authenticationService.SignIn(user, newAccessToken, refreshResult.SecurityToken);
-            }
-            return Ok();
+            return await _authenticationService.Authenticate(accessToken, refreshToken);
         }
 
         [AllowAnonymous]
@@ -132,7 +111,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         public async Task<IActionResult> Logout()
         {
             await _authenticationService.SignOut();
-            return Content("Status Code 440: Authentication token expired.");
+            return new OkObjectResult("Status Code 440: Authentication token expired.");
         }
     }
 }
