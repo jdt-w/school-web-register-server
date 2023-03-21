@@ -14,9 +14,7 @@ namespace SchoolWebRegister.Services.GraphQL
         {
             descriptor.Field(f => f.StatusCode);
             descriptor.Field(f => f.Description);
-            descriptor
-                .Field(f => f.Data)
-                .Type<T>();
+            descriptor.Field(f => f.Data);
         }
     }
     public class GenericResponseType<T> : ObjectType<BaseResponse<T>>
@@ -36,7 +34,7 @@ namespace SchoolWebRegister.Services.GraphQL
     [Authorize(Policy = "AllUsers")]
     public class Mutations
     {
-        [RequiresPermission(Permissions.Edit)]
+        //[RequiresPermission(Permissions.Edit)]
         public async Task<BaseResponse> UpdateUserName([Service] IUserService userService, [ID] string guid, string newUserName)
         {
             ApplicationUser? user = await userService.GetUserById(guid);
@@ -65,7 +63,7 @@ namespace SchoolWebRegister.Services.GraphQL
             };
         }
 
-        [RequiresPermission(Permissions.Edit)]
+        //[RequiresPermission(Permissions.Edit)]
         public async Task<BaseResponse> UpdateUserPassword([Service] IUserService userService, [ID] string guid, string newUserPassword)
         {
             ApplicationUser? user = await userService.GetUserById(guid);

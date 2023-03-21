@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Users;
+using SchoolWebRegister.Domain;
 
 namespace SchoolWebRegister.Services.Authentication.JWT
 {
@@ -39,6 +40,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             {
                 Expires = DateTime.UtcNow.AddDays(_accessValidityInDays),
                 HttpOnly = true,
+                SameSite = SameSiteMode.Strict
             };
             _context.Response.Cookies.Append("accessToken", accessToken, accessOptions);
 
@@ -46,6 +48,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             {
                 Expires = DateTime.UtcNow.AddDays(_refreshDefaultValidityInDays),
                 HttpOnly = true,
+                SameSite = SameSiteMode.Strict
             };
             _context.Response.Cookies.Append("refreshToken", refreshToken, refreshOptions);
         }
@@ -59,8 +62,13 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             _context.Response.Cookies.Append("accessToken", string.Empty, options);
             _context.Response.Cookies.Append("refreshToken", string.Empty, options);
         }
-        public async Task<TokenValidationResult> ValidateAndDecode(string jwtToken)
+        private async Task<TokenValidationResult> ValidateAndDecode(string? jwtToken)
         {
+            if (string.IsNullOrEmpty(jwtToken)) return new TokenValidationResult
+            {
+                IsValid = false
+            };
+
             try
             {
                 var validationParameters = new TokenValidationParameters
@@ -137,36 +145,56 @@ namespace SchoolWebRegister.Services.Authentication.JWT
                 signingCredentials: signingCredentials);
             return jwtSecurityToken;
         }
-
         public bool IsAuthenticated(ClaimsPrincipal user)
         {
             return user.Identity.IsAuthenticated;
         }
-        public async Task<IActionResult> Authenticate(string? accessToken, string? refreshToken)
+        public async Task<BaseResponse<IActionResult>> Authenticate(string? accessToken, string? refreshToken)
         {
-            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken))
-                return new UnauthorizedResult();
-
-            var refreshResult = await ValidateAndDecode(refreshToken);
-            if (!refreshResult.IsValid)
-            {
-                await SignOut();
-                return new UnauthorizedObjectResult("Refresh token is invalid.");
-            }
+            if (string.IsNullOrEmpty(refreshToken))
+                return new BaseResponse<IActionResult>
+                {
+                    Data = new UnauthorizedResult(),
+                    StatusCode = StatusCode.Unauthorized
+                };
 
             var accessResult = await ValidateAndDecode(accessToken);
-            if (!accessResult.IsValid)
+            var refreshResult = await ValidateAndDecode(refreshToken);
+            bool isAccesssExpired = accessResult.Exception is SecurityTokenExpiredException;
+            bool isRefreshExpired = refreshResult.Exception is SecurityTokenExpiredException;
+            if ((!refreshResult.IsValid || isRefreshExpired) || (!accessResult.IsValid && !isAccesssExpired))
+            {
+                await SignOut();
+                return new BaseResponse<IActionResult>
+                {
+                    Data = new UnauthorizedResult(),
+                    Description = "Access or refresh token is invalid.",
+                    StatusCode = StatusCode.Unauthorized
+                };
+            }
+
+            if (!accessResult.IsValid && isAccesssExpired)
             {
                 var jwtSecurityToken = new JwtSecurityTokenHandler().ReadJwtToken(refreshToken);
                 string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("uid"))?.Value;
                 ApplicationUser? user = await _userService.GetUserById(userId);
 
-                if (user == null) return new UnauthorizedObjectResult("UID claim is invalid.");
+                if (user == null) return new BaseResponse<IActionResult>
+                {
+                    Data = new UnauthorizedResult(),
+                    Description = "UID claim is invalid.",
+                    StatusCode = StatusCode.Unauthorized
+                };
 
                 var newAccessToken = await CreateAccessJwtToken(user);
-                await SignIn(user, newAccessToken, refreshResult.SecurityToken);
+                AppendCookies(new JwtSecurityTokenHandler().WriteToken(newAccessToken), refreshToken);
             }
-            return new OkResult();
+
+            return new BaseResponse<IActionResult>
+            {
+                Data = new OkResult(),
+                StatusCode = StatusCode.Successful
+            };
         }
         public async Task<IActionResult> SignIn(ApplicationUser user, SecurityToken accessToken, SecurityToken refreshToken)
         {

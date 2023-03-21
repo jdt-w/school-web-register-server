@@ -2,22 +2,21 @@
 using Microsoft.AspNetCore.Mvc;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Authentication;
-using SchoolWebRegister.Services.Authentication.JWT;
 using SchoolWebRegister.Services.Users;
 using SchoolWebRegister.Web.ViewModels.Account;
 using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 
 namespace SchoolWebRegister.Web.Areas.Users.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "AllUsers")]
     [ApiController]
     [Route("[controller]")]
     public sealed class UsersController : Controller
     {
         private readonly IUserService _userService;
-        private readonly JWTAuthenticationService _authenticationService;
+        private readonly IAuthenticationService _authenticationService;
         private readonly ILogger<UsersController> _logger;
-        public UsersController(IUserService userService, JWTAuthenticationService authenticationService, ILogger<UsersController> logger)
+        public UsersController(IUserService userService, IAuthenticationService authenticationService, ILogger<UsersController> logger)
         {
             _userService = userService;
             _authenticationService = authenticationService;
@@ -85,7 +84,8 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             string? accessToken = Request.Cookies["accessToken"];
             string? refreshToken = Request.Cookies["refreshToken"];
 
-            return await _authenticationService.Authenticate(accessToken, refreshToken);
+            var result = await _authenticationService.Authenticate(accessToken, refreshToken);
+            return result.Data;
         }
 
         [AllowAnonymous]

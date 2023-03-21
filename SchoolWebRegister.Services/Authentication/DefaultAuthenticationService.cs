@@ -8,7 +8,7 @@ using SchoolWebRegister.Domain.Entity;
 
 namespace SchoolWebRegister.Services.Authentication
 {
-    public sealed class DefaultAuthenticationService : IAuthenticationService
+    public sealed class DefaultAuthenticationService
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly HttpContext _context;

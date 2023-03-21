@@ -1,15 +1,14 @@
-﻿using HotChocolate.Authorization;
+﻿using Microsoft.AspNetCore.Http;
+using HotChocolate.Authorization;
 using HotChocolate.Resolvers;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using SchoolWebRegister.Services.Authentication.JWT;
+using SchoolWebRegister.Services.Authentication;
 
 namespace SchoolWebRegister.Domain.Permissions
 {
-    public class JWTAuthorizationFilter : IAuthorizationHandler
+    public sealed class JWTAuthorizationFilter : IAuthorizationHandler
     {
-        public readonly JWTAuthenticationService _authenticationService;
-        public JWTAuthorizationFilter(JWTAuthenticationService authenticationService)
+        public readonly IAuthenticationService _authenticationService;
+        public JWTAuthorizationFilter(IAuthenticationService authenticationService)
         {
             _authenticationService = authenticationService;
         }
@@ -25,7 +24,13 @@ namespace SchoolWebRegister.Domain.Permissions
             string? refreshToken = httpContext?.Request.Cookies["refreshToken"];
             var result = await _authenticationService.Authenticate(accessToken, refreshToken);
 
-            return result is UnauthorizedResult ? AuthorizeResult.NotAuthenticated : AuthorizeResult.Allowed;
+            switch (result.StatusCode)
+            {
+                case StatusCode.Unauthorized: return AuthorizeResult.NotAuthenticated;
+                case StatusCode.Forbidden: return AuthorizeResult.NotAllowed;
+                case StatusCode.Successful: return AuthorizeResult.Allowed;
+                default: return AuthorizeResult.NotAuthenticated;
+            }
         }
     }
 }

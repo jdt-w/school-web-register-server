@@ -1,10 +1,10 @@
+using System.Text;
 using HotChocolate;
 using HotChocolate.AspNetCore.Serialization;
 using HotChocolate.Execution.Serialization;
 using HotChocolate.Types.Pagination;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -18,7 +18,6 @@ using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Authentication.JWT;
 using SchoolWebRegister.Services.GraphQL;
 using SchoolWebRegister.Services.Users;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,7 +77,17 @@ builder.Services
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole(nameof(UserRole.Administrator)));
-    options.AddPolicy("AllUsers", policy => policy.RequireAuthenticatedUser());
+    options.AddPolicy("AllUsers", policy =>
+    {
+        policy.RequireAssertion(handler =>
+        {
+            var service = builder.Services.BuildServiceProvider().GetService<IAuthenticationService>();
+            string? accessToken = (handler.Resource as HttpContext)?.Request.Cookies["accessToken"];
+            string? refreshToken = (handler.Resource as HttpContext)?.Request.Cookies["refreshToken"];
+            var result = service.Authenticate(accessToken, refreshToken).Result;
+            return result.StatusCode == StatusCode.Unauthorized ? false : true;
+        });
+    });
 });
 
 var options = new HttpResponseFormatterOptions
@@ -95,7 +104,8 @@ builder.Services
     .AddGraphQLServer()
     .SetPagingOptions(new PagingOptions
     {
-        MaxPageSize = 100
+        MaxPageSize = 100,
+        IncludeTotalCount = true
     })
     .AddQueryType<UsersQueries>()
     .AddMutationType<Mutations>()
@@ -104,15 +114,16 @@ builder.Services
     .AddSorting()
     .AddType<BaseResponse>()
     .AddType<ApplicationUserType>()
-    .AddErrorFilter<GraphQLErrorFilter>()
-    .AddAuthorizationHandler<JWTAuthorizationFilter>();
-
-builder.Services.AddHttpResponseFormatter(indented: true);
+    .AddAuthorizationHandler<JWTAuthorizationFilter>()
+    .ModifyParserOptions(options => options.IncludeLocations = false)
+    .ModifyRequestOptions(options =>
+    { 
+        options.IncludeExceptionDetails = false;
+    });
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<JWTAuthenticationService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 var app = builder.Build();
@@ -136,14 +147,13 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseCookiePolicy(new CookiePolicyOptions
 {
-    HttpOnly = HttpOnlyPolicy.Always,
     Secure = CookieSecurePolicy.Always,
-    MinimumSameSitePolicy = SameSiteMode.Strict
 });
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseWebSockets();
 app.MapGraphQL("/graphql");
 app.MapAreaControllerRoute(
     name: "AdminArea",
