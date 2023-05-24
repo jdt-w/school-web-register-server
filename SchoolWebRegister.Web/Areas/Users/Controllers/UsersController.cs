@@ -42,7 +42,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
 
             if (ModelState.IsValid)
             {
-                ApplicationUser? user = await _userService.ValidateCredentials(model.UserName, model.UserPassword);
+                ApplicationUser? user = await _userService.ValidateCredentials(model.Email, model.UserPassword);
 
                 if (user != null)
                 {
@@ -51,11 +51,11 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
 
                     await _authenticationService.SignIn(user, accessToken, refreshToken);
 
-                    _logger.LogInformation($"User {user.UserName} authenticated!", nameof(Login));
+                    _logger.LogInformation($"User {user.Email} authenticated!", nameof(Login));
                     
                     return Ok(new AuthenticationResponse(user));
                 }
-                ModelState.AddModelError(nameof(LoginViewModel.UserName), "Неверный логин или пароль");
+                ModelState.AddModelError(nameof(LoginViewModel.Email), "Неверный логин или пароль");
             }
             return Unauthorized();
         }
@@ -67,12 +67,12 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         {
             if (form == null) return Unauthorized();
 
-            bool rememberMe = bool.TryParse(form["RememberMe"], out rememberMe);
+            bool.TryParse(form[nameof(LoginViewModel.RememberMe)], out bool rememberMe);
 
             return await Login(new LoginViewModel
             {
-                UserName = form["UserName"],
-                UserPassword = form["UserPassword"],
+                Email = form[nameof(LoginViewModel.Email)],
+                UserPassword = form[nameof(LoginViewModel.UserPassword)],
                 RememberMe = rememberMe
             });
         }

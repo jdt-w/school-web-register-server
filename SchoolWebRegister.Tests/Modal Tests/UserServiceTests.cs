@@ -11,9 +11,6 @@ namespace SchoolWebRegister.Tests.ModalTests
             return new ApplicationUser
             {
                 Email = "xxxx@example.com",
-                NormalizedEmail = "XXXX@EXAMPLE.COM",
-                UserName = "TestUser123",
-                NormalizedUserName = "TESTUSER123",
                 PhoneNumber = "+111111111111",
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true,

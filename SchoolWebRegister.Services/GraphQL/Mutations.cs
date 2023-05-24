@@ -31,14 +31,21 @@ namespace SchoolWebRegister.Services.GraphQL
         }
     }
 
-    [Authorize(Policy = "AllUsers")]
-    public class Mutations
+    public sealed class MutationType : ObjectType<Mutation>
     {
-        //[RequiresPermission(Permissions.Edit)]
-        public async Task<BaseResponse> UpdateUserName([Service] IUserService userService, [ID] string guid, string newUserName)
+        protected override void Configure(IObjectTypeDescriptor<Mutation> descriptor)
+        {
+            descriptor.Authorize(new[] { Permissions.Edit.ToString() });
+            descriptor.BindFieldsImplicitly();
+        }
+    }
+
+    [Authorize]
+    public class Mutation
+    {
+        public async Task<BaseResponse> UpdateUserPassword([Service] IUserService userService, [ID] string guid, string oldPassword, string newPassword)
         {
             ApplicationUser? user = await userService.GetUserById(guid);
-            ApplicationUser? uniqueLogin = await userService.GetUserByLogin(newUserName);
 
             if (user == null) return new BaseResponse
             {
@@ -46,35 +53,14 @@ namespace SchoolWebRegister.Services.GraphQL
                 Description = "User GUID is not valid."
             };
 
-            if (uniqueLogin != null) return new BaseResponse
+            bool isPasswordValid = userService.ValidatePassword(user, oldPassword);
+            if (!isPasswordValid) return new BaseResponse
             {
                 StatusCode = StatusCode.BadRequest,
-                Description = "New user name is not unique."
+                Description = "Old password is not valid."
             };
 
-            user.UserName = newUserName;
-
-            var result = await userService.UpdateUser(user);
-            return new BaseResponse
-            {
-                Description = result.Description,
-                StatusCode = result.StatusCode,
-                Data = result.Data
-            };
-        }
-
-        //[RequiresPermission(Permissions.Edit)]
-        public async Task<BaseResponse> UpdateUserPassword([Service] IUserService userService, [ID] string guid, string newUserPassword)
-        {
-            ApplicationUser? user = await userService.GetUserById(guid);
-
-            if (user == null) return new BaseResponse
-            {
-                StatusCode = StatusCode.UserNotFound,
-                Description = "User GUID is not valid."
-            };
-
-            var result = await userService.ChangePassword(user, newUserPassword);
+            var result = await userService.ChangePassword(user, newPassword);
             return new BaseResponse
             {
                 StatusCode = result.StatusCode,

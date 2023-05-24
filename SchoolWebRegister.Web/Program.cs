@@ -28,7 +28,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(connectionString, options => options.MigrationsAssembly("SchoolWebRegister.DAL"));
 });
-
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = true;
@@ -36,9 +35,8 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
     options.User.RequireUniqueEmail = false;
 })
-.AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>();
-
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services
     .AddAuthentication(options =>
     {
@@ -73,7 +71,6 @@ builder.Services
         options.RequireHttpsMetadata = true;
         options.SaveToken = true;
     });
-
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole(nameof(UserRole.Administrator)));
@@ -85,7 +82,7 @@ builder.Services.AddAuthorization(options =>
             string? accessToken = (handler.Resource as HttpContext)?.Request.Cookies["accessToken"];
             string? refreshToken = (handler.Resource as HttpContext)?.Request.Cookies["refreshToken"];
             var result = service.Authenticate(accessToken, refreshToken).Result;
-            return result.StatusCode == StatusCode.Unauthorized ? false : true;
+            return result.StatusCode == StatusCode.Successful ? true : false;
         });
     });
 });
@@ -95,11 +92,12 @@ var options = new HttpResponseFormatterOptions
     Json = new JsonResultFormatterOptions
     {
         Indented = true,
-        NullIgnoreCondition = JsonNullIgnoreCondition.All
+        NullIgnoreCondition = JsonNullIgnoreCondition.All,
     }
 };
 
-builder.Services.AddHttpResponseFormatter(options);
+builder.Services.AddHttpResponseFormatter(_ => new GraphQLResponseFormatter(options));
+
 builder.Services
     .AddGraphQLServer()
     .SetPagingOptions(new PagingOptions
@@ -108,28 +106,30 @@ builder.Services
         IncludeTotalCount = true
     })
     .AddQueryType<UsersQueries>()
-    .AddMutationType<Mutations>()
+    .AddMutationType<MutationType>()
     .AddProjections()
     .AddFiltering()
     .AddSorting()
+    .AddErrorFilter<GraphQLErrorFilter>()
     .AddType<BaseResponse>()
     .AddType<ApplicationUserType>()
     .AddAuthorizationHandler<JWTAuthorizationFilter>()
     .ModifyParserOptions(options => options.IncludeLocations = false)
-    .ModifyRequestOptions(options =>
-    { 
-        options.IncludeExceptionDetails = false;
-    });
+    .ModifyRequestOptions(options => options.IncludeExceptionDetails = false);
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IPasswordValidator, PasswordValidator>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 var app = builder.Build();
 
-//var provider = builder.Services.BuildServiceProvider();
-//SchoolWebRegister.Tests.Helpers.DatabaseSeeder.Initialize(provider);
+var service = builder.Services.BuildServiceProvider().GetRequiredService<IUserService>();
+
+var provider = builder.Services.BuildServiceProvider();
+//service.DeleteUser("60b34ee2-846d-4db6-8ac3-4c903d7642b3");
+SchoolWebRegister.Tests.Helpers.DatabaseSeeder.Initialize(provider);
 
 if (app.Environment.IsDevelopment())
 {

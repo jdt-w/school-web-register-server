@@ -10,6 +10,7 @@ namespace SchoolWebRegister.Services.Authentication
     public interface IAuthenticationService
     {
         bool IsAuthenticated(ClaimsPrincipal user);
+        Task<TokenValidationResult> ValidateAndDecode(string? jwtToken);
         Task<JwtSecurityToken> CreateAccessJwtToken(ApplicationUser user);
         Task<JwtSecurityToken> CreateRefreshJwtToken(ApplicationUser user, bool rememberMe = true);
         Task<BaseResponse<IActionResult>> Authenticate(string? accessToken, string? refreshToken);

@@ -6,22 +6,22 @@ namespace SchoolWebRegister.DAL.Repositories
 {
     public abstract class BaseRepository<T> : IDbRepository<T> where T : class
     {
-        private readonly DbContext _dbContext;
+        private readonly DbContext Context;
 
         public BaseRepository(DbContext dbContext)
         {
-            _dbContext = dbContext;
+            Context = dbContext;
         }
 
         public async Task<T> AddAsync(T entity)
         {
-            _dbContext.Set<T>().Add(entity);
-            await _dbContext.SaveChangesAsync();
+            Context.Set<T>().Add(entity);
+            await Context.SaveChangesAsync();
             return entity;
         }
         public IQueryable<T> Specify(ISpecification<T> spec)
         {
-            return _dbContext.Set<T>().AsQueryable().Specify(spec);
+            return Context.Set<T>().AsQueryable().Specify(spec);
         }
         public async Task<int> CountAsync(ISpecification<T> spec)
         {
@@ -29,16 +29,20 @@ namespace SchoolWebRegister.DAL.Repositories
         }
         public async Task DeleteAsync(T entity)
         {
-            _dbContext.Set<T>().Remove(entity);
-            await _dbContext.SaveChangesAsync();
+            Context.Set<T>().Remove(entity);
+            await Context.SaveChangesAsync();
         }
         public async Task<T?> GetByIdAsync(string id)
         {
-            return await _dbContext.Set<T>().FindAsync(id);
+            return await Context.Set<T>().FindAsync(id);
+        }
+        public IQueryable<T> Select()
+        {
+            return Context.Set<T>().AsQueryable<T>();
         }
         public async Task<IEnumerable<T>> SelectAsync()
         {
-            return await _dbContext.Set<T>().ToListAsync();
+            return await Context.Set<T>().ToListAsync();
         }
         public async Task<IEnumerable<T>> SelectAsync(ISpecification<T> spec)
         {
@@ -46,12 +50,13 @@ namespace SchoolWebRegister.DAL.Repositories
         }
         public async Task<IEnumerable<T>> SelectAsync(Expression<Func<T, bool>> predicate)
         {
-            return await _dbContext.Set<T>().Where(predicate).ToListAsync();
+            return await Context.Set<T>().Where(predicate).ToListAsync();
         }
-        public async Task UpdateAsync(T entity)
+        public async Task<T> UpdateAsync(T entity)
         {
-            _dbContext.Set<T>().Update(entity);
-            await _dbContext.SaveChangesAsync();
+            var result = Context.Set<T>().Update(entity);
+            await Context.SaveChangesAsync();
+            return result.Entity;
         }
     }
 }

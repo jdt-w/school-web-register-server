@@ -8,7 +8,7 @@ namespace SchoolWebRegister.Web.ViewModels.Account
         [Display(Name = "Логин")]
         [MaxLength(20, ErrorMessage = "Логин должен иметь длину меньше 15 символов")]
         [MinLength(5, ErrorMessage = "Логин должен иметь длину больше 5 символов")]
-        public string? UserName { get; set; }
+        public string? Email { get; set; }
 
         [Required(ErrorMessage = "Введите пароль")]
         [Display(Name = "Пароль")]

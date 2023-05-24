@@ -1,6 +1,7 @@
 ﻿using HotChocolate.Authorization;
 using HotChocolate.Data;
-using SchoolWebRegister.Domain.Entity;  
+using SchoolWebRegister.Domain.Entity;
+using SchoolWebRegister.Domain.Permissions;
 using SchoolWebRegister.Services.Courses;
 using SchoolWebRegister.Services.Users;
 
@@ -10,6 +11,7 @@ namespace SchoolWebRegister.Services.GraphQL
     {
         protected override void Configure(IObjectTypeDescriptor<ApplicationUser> descriptor)
         {
+            descriptor.Authorize(new string[] { Permissions.Read.ToString() });
             descriptor.Field(f => f.Claims).Ignore();
             descriptor.Field(f => f.UserRoles).Ignore();
             descriptor.Field(f => f.PasswordHash).Ignore();
@@ -18,7 +20,7 @@ namespace SchoolWebRegister.Services.GraphQL
         }
     }
 
-    [Authorize("AllUsers")]
+    [Authorize]
     public sealed class UsersQueries
     {
         [UsePaging]

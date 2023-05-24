@@ -62,7 +62,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             _context.Response.Cookies.Append("accessToken", string.Empty, options);
             _context.Response.Cookies.Append("refreshToken", string.Empty, options);
         }
-        private async Task<TokenValidationResult> ValidateAndDecode(string? jwtToken)
+        public async Task<TokenValidationResult> ValidateAndDecode(string? jwtToken)
         {
             if (string.IsNullOrEmpty(jwtToken)) return new TokenValidationResult
             {
@@ -103,8 +103,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("uid", user.Id),
-                new Claim("username", user.UserName)
+                new Claim("guid", user.Id)
             }
             .Union(roleClaims);
 
@@ -128,8 +127,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("uid", user.Id),
-                new Claim("username", user.UserName)
+                new Claim("guid", user.Id)
             }
             .Union(roleClaims);
 

@@ -7,13 +7,13 @@ namespace SchoolWebRegister.Domain.Entity
     public enum Gender : byte
     {
         Male = 0x00,
-        Female = 0x01,
-        Other = 0x02
+        Female = 0x01
     }
 
     [Index(nameof(Id), IsUnique = true)]
     public sealed class Profile
     {
+        [MinLength(150)]
         public string Id { get; set; }
 
         public string UserId { get; set; }
@@ -27,9 +27,6 @@ namespace SchoolWebRegister.Domain.Entity
 
         [MaxLength(100)]
         public string? FamilyName { get; set; }
-
-        [Column(TypeName = "smallint")]
-        public int Age { get; set; }
 
         public Gender Gender { get; set; } = Gender.Male;
 

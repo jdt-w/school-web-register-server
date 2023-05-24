@@ -11,8 +11,6 @@ namespace SchoolWebRegister.Tests.Helpers
                 Id = Guid.NewGuid().ToString(),
                 Email = "xxxx@example.com",
                 NormalizedEmail = "XXXX@EXAMPLE.COM",
-                UserName = "User Name",
-                NormalizedUserName = "USERNAME",
                 PhoneNumber = "+111111111111",
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true,
