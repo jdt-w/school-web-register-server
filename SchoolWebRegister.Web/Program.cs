@@ -1,5 +1,6 @@
 using System.Text;
 using HotChocolate;
+using HotChocolate.AspNetCore;
 using HotChocolate.AspNetCore.Serialization;
 using HotChocolate.Execution.Serialization;
 using HotChocolate.Types.Pagination;
@@ -98,7 +99,6 @@ var options = new HttpResponseFormatterOptions
 };
 
 builder.Services.AddHttpResponseFormatter(_ => new GraphQLResponseFormatter(options));
-
 builder.Services
     .AddGraphQLServer()
     .SetPagingOptions(new PagingOptions
@@ -146,7 +146,10 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
+app.UseCors(options => options.AllowAnyMethod()
+                .AllowAnyHeader()
+                .SetIsOriginAllowed(origin => true)
+                .AllowCredentials());
 app.UseRouting();
 app.UseCookiePolicy(new CookiePolicyOptions
 {
@@ -157,7 +160,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseWebSockets();
-app.MapGraphQL("/graphql");
+app.MapGraphQL().WithOptions(new GraphQLServerOptions
+{
+    AllowedGetOperations = AllowedGetOperations.QueryAndMutation,
+    EnableGetRequests = true,
+});
 app.MapAreaControllerRoute(
     name: "AdminArea",
     areaName: "Admin",

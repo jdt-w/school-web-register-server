@@ -6,7 +6,7 @@ namespace SchoolWebRegister.DAL.Repositories
 {
     public abstract class BaseRepository<T> : IDbRepository<T> where T : class
     {
-        private readonly DbContext Context;
+        protected readonly DbContext Context;
 
         public BaseRepository(DbContext dbContext)
         {

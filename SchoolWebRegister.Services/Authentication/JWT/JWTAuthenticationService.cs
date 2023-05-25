@@ -40,7 +40,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             {
                 Expires = DateTime.UtcNow.AddDays(_accessValidityInDays),
                 HttpOnly = true,
-                SameSite = SameSiteMode.Strict
+                SameSite = SameSiteMode.None
             };
             _context.Response.Cookies.Append("accessToken", accessToken, accessOptions);
 
@@ -48,7 +48,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             {
                 Expires = DateTime.UtcNow.AddDays(_refreshDefaultValidityInDays),
                 HttpOnly = true,
-                SameSite = SameSiteMode.Strict
+                SameSite = SameSiteMode.None
             };
             _context.Response.Cookies.Append("refreshToken", refreshToken, refreshOptions);
         }

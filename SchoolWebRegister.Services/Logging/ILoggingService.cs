@@ -18,6 +18,6 @@ namespace SchoolWebRegister.Services.Logging
     {
         void LogInformation(string message);
         void LogInformation(string message, params object[] args);
-        void LogEventAction(ActionLog log);
+        Task LogEventAction(ActionLog log);
     }
 }

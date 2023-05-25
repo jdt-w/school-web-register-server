@@ -14,9 +14,9 @@ namespace SchoolWebRegister.Services.Logging
             _logRepository = repository;
         }
 
-        public void LogEventAction(ActionLog log)
+        public async Task LogEventAction(ActionLog log)
         {
-            _logRepository.LogActionEvent(log);
+            await _logRepository.LogActionEvent(log);
         }
         public void LogInformation(string message)
         {

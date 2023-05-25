@@ -5,7 +5,7 @@
         public IError OnError(IError error)
         {
             error = error.RemoveExtensions().RemoveLocations();
-            return error.WithMessage(error.Exception.Message);
+            return error.WithMessage(error.Message);
         }
     }
 }

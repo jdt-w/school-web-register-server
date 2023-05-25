@@ -2,11 +2,11 @@
 
 namespace SchoolWebRegister.Domain.Entity
 {
-    [PrimaryKey(nameof(Id))]
-    [Index(nameof(Id))]
+    [PrimaryKey("DateTime")]
     public sealed class ActionLog
     {
-        public int Id { get; set; }
+        public DateTime DateTime { get; set; }
+        public int EventId { get; set; }
         public string UserId { get; set; }
         public ApplicationUser User { get; set; }
         public string? InvolvedUserId { get; set; }

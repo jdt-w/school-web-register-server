@@ -9,8 +9,28 @@ namespace SchoolWebRegister.DAL
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
             Database.EnsureCreated();
+            //ClearDatabase();
         }
+        public void ClearDatabase()
+        {
+            Database.ExecuteSql($"EXEC sp_MSforeachtable @command1 = 'ALTER TABLE ? NOCHECK CONSTRAINT all'");
+            bool tryAgain = true;
 
+            // need to perform multiple drop attempts due to the possibility of linked foreign key data
+            while (tryAgain)
+            {
+                try
+                {
+                    // drop tables
+                    Database.ExecuteSql($"EXEC sp_MSforeachtable @command1 = 'DROP TABLE ?'");
+
+                    // remove try again flag
+                    tryAgain = false;
+                }
+                catch { } // ignore errors as these are expected due to linked foreign key data
+            }
+            SaveChanges();
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

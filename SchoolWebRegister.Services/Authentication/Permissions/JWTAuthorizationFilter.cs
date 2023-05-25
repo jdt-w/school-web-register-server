@@ -4,6 +4,7 @@ using HotChocolate.Resolvers;
 using SchoolWebRegister.Services.Users;
 using SchoolWebRegister.Domain.Entity;
 using IAuthenticationService = SchoolWebRegister.Services.Authentication.IAuthenticationService;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace SchoolWebRegister.Domain.Permissions
 {
@@ -40,6 +41,9 @@ namespace SchoolWebRegister.Domain.Permissions
         }
         private async Task<bool> CheckPermissions(string guid, IReadOnlyList<string> roles)
         {
+            if (roles == null || roles.Count == 0)
+                return true;
+
             if (roles != null && roles.Count > 0)
             {
                 ApplicationUser? user = await _userService.GetUserById(guid);
