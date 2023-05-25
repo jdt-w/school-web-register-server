@@ -108,6 +108,16 @@ namespace SchoolWebRegister.DAL
             {
                 b.HasMany(e => e.Quizes).WithOne().OnDelete(DeleteBehavior.Cascade);
             });
+
+            modelBuilder.Entity<ActionLog>(b =>
+            {
+                b.ToTable("Logs")
+                   .HasOne(e => e.User)
+                   .WithMany(e => e.ActionLogs)
+                   .HasForeignKey(uc => uc.UserId)
+                   .IsRequired()
+                   .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

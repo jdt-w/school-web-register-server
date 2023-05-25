@@ -10,7 +10,7 @@ namespace SchoolWebRegister.Domain.Entity
         public Profile? Profile { get; set; }
         public ICollection<ApplicationUserRole> UserRoles { get; set; }
         public ICollection<ApplicationUserClaim> Claims { get; set; }
-       // public ICollection<ActionLog> ActionLogs { get; set; }
+        public ICollection<ActionLog> ActionLogs { get; set; }
         public override string ToString()
         {
             return string.Concat("ID = ", Id, " Login = ", UserName);

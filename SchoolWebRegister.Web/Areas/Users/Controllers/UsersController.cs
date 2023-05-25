@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Mvc;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Authentication;
+using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
 using SchoolWebRegister.Web.ViewModels.Account;
+using System.Net;
 using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 
 namespace SchoolWebRegister.Web.Areas.Users.Controllers
@@ -15,8 +17,8 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
     {
         private readonly IUserService _userService;
         private readonly IAuthenticationService _authenticationService;
-        private readonly ILogger<UsersController> _logger;
-        public UsersController(IUserService userService, IAuthenticationService authenticationService, ILogger<UsersController> logger)
+        private readonly ILoggingService _logger;
+        public UsersController(IUserService userService, IAuthenticationService authenticationService, ILoggingService logger)
         {
             _userService = userService;
             _authenticationService = authenticationService;
@@ -28,7 +30,6 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         [Route("/users/login")]
         public IActionResult Login(string returnUrl)
         {
-            _logger.LogWarning(returnUrl);
             ViewBag.ReturnUrl = returnUrl;
             return Ok();
         }
@@ -51,7 +52,17 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
 
                     await _authenticationService.SignIn(user, accessToken, refreshToken);
 
-                    _logger.LogInformation($"User {user.Email} authenticated!", nameof(Login));
+                    _logger.LogEventAction(new ActionLog
+                    {
+                        Component = "Login Page",
+                        EventName = "Authentication",
+                        EventDescription = $"User {user.Email} logged in.",
+                        User = user,
+                        InvolvedUser = user,
+                        Context = "Login",
+                        Source = "Login",
+                        IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                    });
                     
                     return Ok(new AuthenticationResponse(user));
                 }

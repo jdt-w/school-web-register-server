@@ -17,6 +17,7 @@ using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Authentication.JWT;
 using SchoolWebRegister.Services.GraphQL;
+using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -120,7 +121,9 @@ builder.Services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IPasswordValidator, PasswordValidator>();
+builder.Services.AddScoped<ILogRepository, LogRepository>();
+builder.Services.AddSingleton<IPasswordValidator, PasswordValidator>();
+builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 var app = builder.Build();

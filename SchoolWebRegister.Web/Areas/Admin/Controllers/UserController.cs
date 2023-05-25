@@ -25,7 +25,6 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
             }
             return RedirectToAction("Error");
         }
-
         public async Task<IActionResult> CreateUser(ApplicationUser user)
         {
             var response = await _usersService.CreateUser(user);
