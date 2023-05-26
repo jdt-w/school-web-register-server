@@ -1,24 +1,24 @@
-﻿using System.IdentityModel.Tokens.Jwt;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Authentication;
-using SchoolWebRegister.Services.Authentication.JWT;
+using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
 using SchoolWebRegister.Web.ViewModels.Account;
+using System.Net;
 using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 
 namespace SchoolWebRegister.Web.Areas.Users.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "AllUsers")]
     [ApiController]
     [Route("[controller]")]
     public sealed class UsersController : Controller
     {
         private readonly IUserService _userService;
-        private readonly JWTAuthenticationService _authenticationService;
-        private readonly ILogger<UsersController> _logger;
-        public UsersController(IUserService userService, JWTAuthenticationService authenticationService, ILogger<UsersController> logger)
+        private readonly IAuthenticationService _authenticationService;
+        private readonly ILoggingService _logger;
+        public UsersController(IUserService userService, IAuthenticationService authenticationService, ILoggingService logger)
         {
             _userService = userService;
             _authenticationService = authenticationService;
@@ -30,9 +30,34 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         [Route("/users/login")]
         public IActionResult Login(string returnUrl)
         {
-            _logger.LogWarning(returnUrl);
             ViewBag.ReturnUrl = returnUrl;
             return Ok();
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [Route("/log")]
+        public async Task<IActionResult> LogEventAction(IFormCollection form)
+        {
+            if (int.TryParse(form[nameof(ActionLog.EventId)], out int id))
+            {
+                await _logger.LogEventAction(new ActionLog
+                {
+                    DateTime = DateTime.Now,
+                    EventId = id,
+                    Component = form[nameof(ActionLog.Component)],
+                    EventName = form[nameof(ActionLog.EventName)],
+                    EventDescription = form[nameof(ActionLog.EventDescription)],
+                    UserId = form[nameof(ActionLog.UserId)],
+                    InvolvedUserId = form[nameof(ActionLog.InvolvedUserId)],
+                    Context = form[nameof(ActionLog.Context)],
+                    Source = form[nameof(ActionLog.Source)],
+                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+                });
+                return Ok();
+            }
+            else
+                return BadRequest();
         }
 
         [AllowAnonymous]
@@ -44,7 +69,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
 
             if (ModelState.IsValid)
             {
-                ApplicationUser? user = await _userService.GetUserByLogin(model.UserName);
+                ApplicationUser? user = await _userService.ValidateCredentials(model.Email, model.UserPassword);
 
                 if (user != null)
                 {
@@ -52,12 +77,10 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
                     var refreshToken = await _authenticationService.CreateRefreshJwtToken(user, model.RememberMe);
 
                     await _authenticationService.SignIn(user, accessToken, refreshToken);
-
-                    _logger.LogInformation($"User {user.UserName} authenticated!", nameof(Login));
                     
                     return Ok(new AuthenticationResponse(user));
                 }
-                ModelState.AddModelError(nameof(LoginViewModel.UserName), "Неверный логин или пароль");
+                ModelState.AddModelError(nameof(LoginViewModel.Email), "Неверный логин или пароль");
             }
             return Unauthorized();
         }
@@ -69,11 +92,13 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         {
             if (form == null) return Unauthorized();
 
+            bool.TryParse(form[nameof(LoginViewModel.RememberMe)], out bool rememberMe);
+
             return await Login(new LoginViewModel
             {
-                UserName = form["UserName"],
-                UserPassword = form["UserPassword"],
-                RememberMe = bool.Parse(form["RememberMe"])
+                Email = form[nameof(LoginViewModel.Email)],
+                UserPassword = form[nameof(LoginViewModel.UserPassword)],
+                RememberMe = rememberMe
             });
         }
 
@@ -84,29 +109,8 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             string? accessToken = Request.Cookies["accessToken"];
             string? refreshToken = Request.Cookies["refreshToken"];
 
-            if (string.IsNullOrEmpty(accessToken) || string.IsNullOrEmpty(refreshToken)) 
-                return Unauthorized();
-
-            var refreshResult = await _authenticationService.ValidateAndDecode(refreshToken);
-            if (!refreshResult.IsValid)
-            {
-                await _authenticationService.SignOut();
-                return Unauthorized();
-            }
-            
-            var accessResult = await _authenticationService.ValidateAndDecode(accessToken);
-            if (!accessResult.IsValid)
-            {
-                var jwtSecurityToken = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
-                string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("uid"))?.Value;
-                ApplicationUser? user = await _userService.GetUserById(userId);
-
-                if (user == null) return Unauthorized();
-
-                var newAccessToken = await _authenticationService.CreateAccessJwtToken(user);
-                await _authenticationService.SignIn(user, newAccessToken, refreshResult.SecurityToken);
-            }
-            return Ok();
+            var result = await _authenticationService.Authenticate(accessToken, refreshToken);
+            return result.Data;
         }
 
         [AllowAnonymous]
@@ -132,7 +136,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         public async Task<IActionResult> Logout()
         {
             await _authenticationService.SignOut();
-            return Content("Status Code 440: Authentication token expired.");
+            return new OkObjectResult("Status Code 440: Authentication token expired.");
         }
     }
 }

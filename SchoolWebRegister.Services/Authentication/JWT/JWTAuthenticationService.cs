@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Users;
+using SchoolWebRegister.Domain;
 
 namespace SchoolWebRegister.Services.Authentication.JWT
 {
@@ -33,11 +34,23 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             _context = contextAccessor.HttpContext;
         }
 
-        private void AppendCookies(SecurityToken accessToken, SecurityToken refreshToken)
+        private void AppendCookies(string accessToken, string refreshToken)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            _context.Response.Cookies.Append("accessToken", tokenHandler.WriteToken(accessToken));
-            _context.Response.Cookies.Append("refreshToken", tokenHandler.WriteToken(refreshToken));
+            CookieOptions accessOptions = new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddDays(_accessValidityInDays),
+                HttpOnly = true,
+                SameSite = SameSiteMode.None
+            };
+            _context.Response.Cookies.Append("accessToken", accessToken, accessOptions);
+
+            CookieOptions refreshOptions = new CookieOptions
+            {
+                Expires = DateTime.UtcNow.AddDays(_refreshDefaultValidityInDays),
+                HttpOnly = true,
+                SameSite = SameSiteMode.None
+            };
+            _context.Response.Cookies.Append("refreshToken", refreshToken, refreshOptions);
         }
         private void AppendInvalidCookies()
         {
@@ -49,8 +62,13 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             _context.Response.Cookies.Append("accessToken", string.Empty, options);
             _context.Response.Cookies.Append("refreshToken", string.Empty, options);
         }
-        public async Task<TokenValidationResult> ValidateAndDecode(string jwtToken)
+        public async Task<TokenValidationResult> ValidateAndDecode(string? jwtToken)
         {
+            if (string.IsNullOrEmpty(jwtToken)) return new TokenValidationResult
+            {
+                IsValid = false
+            };
+
             try
             {
                 var validationParameters = new TokenValidationParameters
@@ -85,8 +103,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("uid", user.Id),
-                new Claim("username", user.UserName)
+                new Claim("guid", user.Id)
             }
             .Union(roleClaims);
 
@@ -110,8 +127,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("uid", user.Id),
-                new Claim("username", user.UserName)
+                new Claim("guid", user.Id)
             }
             .Union(roleClaims);
 
@@ -127,14 +143,65 @@ namespace SchoolWebRegister.Services.Authentication.JWT
                 signingCredentials: signingCredentials);
             return jwtSecurityToken;
         }
-
         public bool IsAuthenticated(ClaimsPrincipal user)
         {
             return user.Identity.IsAuthenticated;
         }
+        public async Task<BaseResponse<IActionResult>> Authenticate(string? accessToken, string? refreshToken)
+        {
+            if (string.IsNullOrEmpty(refreshToken))
+                return new BaseResponse<IActionResult>
+                {
+                    Data = new UnauthorizedResult(),
+                    StatusCode = StatusCode.Unauthorized
+                };
+
+            var accessResult = await ValidateAndDecode(accessToken);
+            var refreshResult = await ValidateAndDecode(refreshToken);
+            bool isAccesssExpired = accessResult.Exception is SecurityTokenExpiredException;
+            bool isRefreshExpired = refreshResult.Exception is SecurityTokenExpiredException;
+            if ((!refreshResult.IsValid || isRefreshExpired) || (!accessResult.IsValid && !isAccesssExpired))
+            {
+                await SignOut();
+                return new BaseResponse<IActionResult>
+                {
+                    Data = new UnauthorizedResult(),
+                    Description = "Access or refresh token is invalid.",
+                    StatusCode = StatusCode.Unauthorized
+                };
+            }
+
+            if (!accessResult.IsValid && isAccesssExpired)
+            {
+                var jwtSecurityToken = new JwtSecurityTokenHandler().ReadJwtToken(refreshToken);
+                string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("uid"))?.Value;
+                ApplicationUser? user = await _userService.GetUserById(userId);
+
+                if (user == null) return new BaseResponse<IActionResult>
+                {
+                    Data = new UnauthorizedResult(),
+                    Description = "UID claim is invalid.",
+                    StatusCode = StatusCode.Unauthorized
+                };
+
+                var newAccessToken = await CreateAccessJwtToken(user);
+                AppendCookies(new JwtSecurityTokenHandler().WriteToken(newAccessToken), refreshToken);
+            }
+
+            return new BaseResponse<IActionResult>
+            {
+                Data = new OkResult(),
+                StatusCode = StatusCode.Successful
+            };
+        }
         public async Task<IActionResult> SignIn(ApplicationUser user, SecurityToken accessToken, SecurityToken refreshToken)
         {
-            AppendCookies(accessToken, refreshToken);
+            var tokenHandler = new JwtSecurityTokenHandler();
+            string accessStr = tokenHandler.WriteToken(accessToken);
+            string refreshStr = tokenHandler.WriteToken(refreshToken);
+
+            AppendCookies(accessStr, refreshStr);
+
             return await Task.FromResult(new OkObjectResult(new AuthenticationResponse(user)));
         }
         public async Task SignOut() => await Task.Run(AppendInvalidCookies);

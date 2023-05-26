@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolWebRegister.Domain.Entity;
+using SchoolWebRegister.Domain.Permissions;
 using SchoolWebRegister.Services.Users;
 
 namespace SchoolWebRegister.Web.Areas.Admin.Controllers
@@ -17,7 +18,7 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
 
         public async Task<IActionResult> DeleteUser(ApplicationUser user)
         {
-            var response = await _usersService.DeleteUser(user);
+            var response = await _usersService.DeleteUser(user.Id);
             if (response.StatusCode == Domain.StatusCode.Successful)
             {
                 return RedirectToAction("GetUsers");

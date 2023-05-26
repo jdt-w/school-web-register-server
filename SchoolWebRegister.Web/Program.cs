@@ -1,17 +1,25 @@
+using System.Text;
+using HotChocolate;
+using HotChocolate.AspNetCore;
+using HotChocolate.AspNetCore.Serialization;
+using HotChocolate.Execution.Serialization;
+using HotChocolate.Types.Pagination;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SchoolWebRegister.DAL;
 using SchoolWebRegister.DAL.Repositories;
+using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
+using SchoolWebRegister.Domain.Permissions;
 using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Authentication.JWT;
+using SchoolWebRegister.Services.GraphQL;
+using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
-using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,7 +30,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(connectionString, options => options.MigrationsAssembly("SchoolWebRegister.DAL"));
 });
-
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
     options.SignIn.RequireConfirmedAccount = true;
@@ -30,24 +37,23 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
     options.User.RequireUniqueEmail = false;
 })
-.AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>();
-
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.HttpOnly = true;
-    options.LoginPath = "/users/login";
-    options.AccessDeniedPath = "/users/access-denied";
-    options.SlidingExpiration = true;
-    options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
-});
-
+    .AddRoles<IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services
     .AddAuthentication(options =>
     {
+        options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddCookie(options =>
+    {
+        options.Cookie.HttpOnly = true;
+        options.LoginPath = "/users/login";
+        options.AccessDeniedPath = "/users/access-denied";
+        options.SlidingExpiration = true;
+        options.ReturnUrlParameter = CookieAuthenticationDefaults.ReturnUrlParameter;
     })
     .AddJwtBearer(options =>
     {
@@ -70,20 +76,63 @@ builder.Services
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole(nameof(UserRole.Administrator)));
-    options.AddPolicy("AllUsers", policy => policy.RequireAuthenticatedUser());
+    options.AddPolicy("AllUsers", policy =>
+    {
+        policy.RequireAssertion(handler =>
+        {
+            var service = builder.Services.BuildServiceProvider().GetService<IAuthenticationService>();
+            string? accessToken = (handler.Resource as HttpContext)?.Request.Cookies["accessToken"];
+            string? refreshToken = (handler.Resource as HttpContext)?.Request.Cookies["refreshToken"];
+            var result = service.Authenticate(accessToken, refreshToken).Result;
+            return result.StatusCode == StatusCode.Successful ? true : false;
+        });
+    });
 });
 
-builder.Services.AddControllersWithViews();
+var options = new HttpResponseFormatterOptions
+{
+    Json = new JsonResultFormatterOptions
+    {
+        Indented = true,
+        NullIgnoreCondition = JsonNullIgnoreCondition.All,
+    }
+};
+
+builder.Services.AddHttpResponseFormatter(_ => new GraphQLResponseFormatter(options));
+builder.Services
+    .AddGraphQLServer()
+    .SetPagingOptions(new PagingOptions
+    {
+        MaxPageSize = 100,
+        IncludeTotalCount = true
+    })
+    .AddQueryType<UsersQueries>()
+    .AddMutationType<MutationType>()
+    .AddProjections()
+    .AddFiltering()
+    .AddSorting()
+    .AddErrorFilter<GraphQLErrorFilter>()
+    .AddType<BaseResponse>()
+    .AddType<ApplicationUserType>()
+    .AddAuthorizationHandler<JWTAuthorizationFilter>()
+    .ModifyParserOptions(options => options.IncludeLocations = false)
+    .ModifyRequestOptions(options => options.IncludeExceptionDetails = false);
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<JWTAuthenticationService>();
+builder.Services.AddScoped<ILogRepository, LogRepository>();
+builder.Services.AddSingleton<IPasswordValidator, PasswordValidator>();
+builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 var app = builder.Build();
 
-//var provider = builder.Services.BuildServiceProvider();
-//SchoolWebRegister.Tests.Helpers.DatabaseSeeder.Initialize(provider);
+var service = builder.Services.BuildServiceProvider().GetRequiredService<IUserService>();
+
+var provider = builder.Services.BuildServiceProvider();
+//service.DeleteUser("60b34ee2-846d-4db6-8ac3-4c903d7642b3");
+SchoolWebRegister.Tests.Helpers.DatabaseSeeder.Initialize(provider);
 
 if (app.Environment.IsDevelopment())
 {
@@ -97,17 +146,25 @@ else
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
+app.UseCors(options => options.AllowAnyMethod()
+                .AllowAnyHeader()
+                .SetIsOriginAllowed(origin => true)
+                .AllowCredentials());
 app.UseRouting();
-
 app.UseCookiePolicy(new CookiePolicyOptions
 {
-    HttpOnly = HttpOnlyPolicy.Always,
-    Secure = CookieSecurePolicy.Always
+    Secure = CookieSecurePolicy.Always,
 });
+
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseWebSockets();
+app.MapGraphQL().WithOptions(new GraphQLServerOptions
+{
+    AllowedGetOperations = AllowedGetOperations.QueryAndMutation,
+    EnableGetRequests = true,
+});
 app.MapAreaControllerRoute(
     name: "AdminArea",
     areaName: "Admin",

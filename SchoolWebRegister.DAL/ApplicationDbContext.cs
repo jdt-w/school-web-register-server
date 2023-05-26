@@ -9,34 +9,39 @@ namespace SchoolWebRegister.DAL
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
             Database.EnsureCreated();
+            //ClearDatabase();
         }
+        public void ClearDatabase()
+        {
+            Database.ExecuteSql($"EXEC sp_MSforeachtable @command1 = 'ALTER TABLE ? NOCHECK CONSTRAINT all'");
+            bool tryAgain = true;
 
+            // need to perform multiple drop attempts due to the possibility of linked foreign key data
+            while (tryAgain)
+            {
+                try
+                {
+                    // drop tables
+                    Database.ExecuteSql($"EXEC sp_MSforeachtable @command1 = 'DROP TABLE ?'");
+
+                    // remove try again flag
+                    tryAgain = false;
+                }
+                catch { } // ignore errors as these are expected due to linked foreign key data
+            }
+            SaveChanges();
+        }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<ApplicationUser>(b =>
             {
-                // Each User can have many UserClaims
                 b.HasMany(e => e.Claims)
-                    .WithOne(e => e.User)
-                    .HasForeignKey(uc => uc.UserId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // Each User can have many UserLogins
-                b.HasMany(e => e.Logins)
-                    .WithOne(e => e.User)
-                    .HasForeignKey(ul => ul.UserId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                // Each User can have many UserTokens
-                b.HasMany(e => e.Tokens)
-                    .WithOne(e => e.User)
-                    .HasForeignKey(ut => ut.UserId)
-                    .IsRequired()
-                    .OnDelete(DeleteBehavior.Cascade);
+                   .WithOne(e => e.User)
+                   .HasForeignKey(uc => uc.UserId)
+                   .IsRequired()
+                   .OnDelete(DeleteBehavior.Cascade);
 
                 // Each User can have many entries in the UserRole join table
                 b.HasMany(e => e.UserRoles)
@@ -122,6 +127,16 @@ namespace SchoolWebRegister.DAL
             modelBuilder.Entity<CourseLection>(b =>
             {
                 b.HasMany(e => e.Quizes).WithOne().OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ActionLog>(b =>
+            {
+                b.ToTable("Logs")
+                   .HasOne(e => e.User)
+                   .WithMany(e => e.ActionLogs)
+                   .HasForeignKey(uc => uc.UserId)
+                   .IsRequired()
+                   .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

@@ -5,12 +5,12 @@ namespace SchoolWebRegister.Services.Authentication
     public struct AuthenticationResponse
     {
         public string UserId { get; set; }
-        public string? UserName { get; set; }
+        public string? Email { get; set; }
 
         public AuthenticationResponse(ApplicationUser user)
         {
             UserId = user.Id;
-            UserName = user.UserName;
+            Email = user.Email;
         }
     }
 }

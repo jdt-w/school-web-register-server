@@ -131,10 +131,6 @@ namespace SchoolWebRegister.DAL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
 
@@ -144,11 +140,9 @@ namespace SchoolWebRegister.DAL.Migrations
 
                     b.HasKey("LoginProvider", "ProviderKey");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("AspNetUserLogins", (string)null);
-
-                    b.HasDiscriminator<string>("Discriminator").HasValue("IdentityUserLogin<string>");
-
-                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -187,20 +181,58 @@ namespace SchoolWebRegister.DAL.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
 
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
 
-                    b.HasDiscriminator<string>("Discriminator").HasValue("IdentityUserToken<string>");
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ActionLog", b =>
+                {
+                    b.Property<DateTime>("DateTime")
+                        .HasColumnType("datetime2");
 
-                    b.UseTphMappingStrategy();
+                    b.Property<string>("Component")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Context")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EventDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EventName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IPAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InvolvedUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("DateTime");
+
+                    b.HasIndex("InvolvedUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Logs", (string)null);
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUser", b =>
@@ -299,7 +331,10 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.HasIndex("AuthorId")
                         .IsUnique();
 
-                    b.ToTable("Course");
+                    b.HasIndex("Id")
+                        .IsUnique();
+
+                    b.ToTable("Course", (string)null);
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.CourseEnrollment", b =>
@@ -333,8 +368,16 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.Property<int>("CourseId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("ImageURL")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LectionName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -343,16 +386,13 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.HasIndex("Id")
                         .IsUnique();
 
-                    b.ToTable("CourseLection");
+                    b.ToTable("CourseLection", (string)null);
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Profile", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<short>("Age")
-                        .HasColumnType("smallint");
 
                     b.Property<DateTime>("Birthday")
                         .HasColumnType("date");
@@ -385,7 +425,7 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Profile");
+                    b.ToTable("Profile", (string)null);
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Quiz", b =>
@@ -429,7 +469,7 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.HasIndex("Id")
                         .IsUnique();
 
-                    b.ToTable("Quiz", t =>
+                    b.ToTable("Quiz", null, t =>
                         {
                             t.HasCheckConstraint("PassThreshold", "PassThreshold > 0 AND PassThreshold < 1");
                         });
@@ -460,7 +500,7 @@ namespace SchoolWebRegister.DAL.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("QuizAnswer");
+                    b.ToTable("QuizAnswer", (string)null);
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.QuizQuestion", b =>
@@ -488,7 +528,7 @@ namespace SchoolWebRegister.DAL.Migrations
 
                     b.HasIndex("QuizId");
 
-                    b.ToTable("QuizQuestion");
+                    b.ToTable("QuizQuestion", (string)null);
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Student", b =>
@@ -533,27 +573,11 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.HasDiscriminator().HasValue("ApplicationUserClaim");
                 });
 
-            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUserLogin", b =>
-                {
-                    b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>");
-
-                    b.HasIndex("UserId");
-
-                    b.HasDiscriminator().HasValue("ApplicationUserLogin");
-                });
-
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUserRole", b =>
                 {
                     b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUserRole<string>");
 
                     b.HasDiscriminator().HasValue("ApplicationUserRole");
-                });
-
-            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUserToken", b =>
-                {
-                    b.HasBaseType("Microsoft.AspNetCore.Identity.IdentityUserToken<string>");
-
-                    b.HasDiscriminator().HasValue("ApplicationUserToken");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -565,6 +589,15 @@ namespace SchoolWebRegister.DAL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -572,6 +605,32 @@ namespace SchoolWebRegister.DAL.Migrations
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ActionLog", b =>
+                {
+                    b.HasOne("SchoolWebRegister.Domain.Entity.ApplicationUser", "InvolvedUser")
+                        .WithMany()
+                        .HasForeignKey("InvolvedUserId");
+
+                    b.HasOne("SchoolWebRegister.Domain.Entity.ApplicationUser", "User")
+                        .WithMany("ActionLogs")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InvolvedUser");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.Course", b =>
@@ -689,17 +748,6 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUserLogin", b =>
-                {
-                    b.HasOne("SchoolWebRegister.Domain.Entity.ApplicationUser", "User")
-                        .WithMany("Logins")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUserRole", b =>
                 {
                     b.HasOne("SchoolWebRegister.Domain.Entity.ApplicationRole", "Role")
@@ -719,26 +767,13 @@ namespace SchoolWebRegister.DAL.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUserToken", b =>
-                {
-                    b.HasOne("SchoolWebRegister.Domain.Entity.ApplicationUser", "User")
-                        .WithMany("Tokens")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("SchoolWebRegister.Domain.Entity.ApplicationUser", b =>
                 {
+                    b.Navigation("ActionLogs");
+
                     b.Navigation("Claims");
 
-                    b.Navigation("Logins");
-
                     b.Navigation("Profile");
-
-                    b.Navigation("Tokens");
 
                     b.Navigation("UserRoles");
                 });

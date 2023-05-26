@@ -102,8 +102,7 @@ namespace SchoolWebRegister.DAL.Migrations
                     LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     ProviderKey = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     ProviderDisplayName = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Discriminator = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -148,8 +147,7 @@ namespace SchoolWebRegister.DAL.Migrations
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     LoginProvider = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
-                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Discriminator = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Value = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -166,10 +164,11 @@ namespace SchoolWebRegister.DAL.Migrations
                 name: "Course",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     CourseName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
@@ -184,6 +183,37 @@ namespace SchoolWebRegister.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Logs",
+                columns: table => new
+                {
+                    DateTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EventId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    InvolvedUserId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Context = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Component = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    EventName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EventDescription = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Source = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IPAddress = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Logs", x => x.DateTime);
+                    //table.ForeignKey(
+                    //    name: "FK_Logs_AspNetUsers_InvolvedUserId",
+                    //    column: x => x.InvolvedUserId,
+                    //    principalTable: "AspNetUsers",
+                    //    principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Logs_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Profile",
                 columns: table => new
                 {
@@ -192,7 +222,6 @@ namespace SchoolWebRegister.DAL.Migrations
                     FirstName = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
                     SecondName = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: true),
                     FamilyName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Age = table.Column<short>(type: "smallint", nullable: false),
                     Gender = table.Column<byte>(type: "tinyint", nullable: false),
                     Birthday = table.Column<DateTime>(type: "date", nullable: false)
                 },
@@ -211,9 +240,12 @@ namespace SchoolWebRegister.DAL.Migrations
                 name: "CourseLection",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CourseId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CourseId = table.Column<int>(type: "int", nullable: false),
+                    LectionName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -248,7 +280,8 @@ namespace SchoolWebRegister.DAL.Migrations
                 name: "Quiz",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     PassThreshold = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
@@ -256,7 +289,7 @@ namespace SchoolWebRegister.DAL.Migrations
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     StartsAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EndsAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CourseLectionId = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                    CourseLectionId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -275,7 +308,7 @@ namespace SchoolWebRegister.DAL.Migrations
                 columns: table => new
                 {
                     StudentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CourseId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    CourseId = table.Column<int>(type: "int", nullable: false),
                     Progress = table.Column<decimal>(type: "decimal(2,1)", nullable: false, defaultValue: 0m)
                 },
                 constraints: table =>
@@ -299,8 +332,9 @@ namespace SchoolWebRegister.DAL.Migrations
                 name: "QuizQuestion",
                 columns: table => new
                 {
-                    QuestionId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    QuizId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    QuestionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    QuizId = table.Column<int>(type: "int", nullable: false),
                     Text = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     MultiChoice = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -319,10 +353,11 @@ namespace SchoolWebRegister.DAL.Migrations
                 name: "QuizAnswer",
                 columns: table => new
                 {
-                    AnswerId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    AnswerId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     Text = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     IsCorrect = table.Column<bool>(type: "bit", nullable: false),
-                    QuestionId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    QuestionId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -387,6 +422,12 @@ namespace SchoolWebRegister.DAL.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Course_Id",
+                table: "Course",
+                column: "Id",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CourseEnrollments_StudentId",
                 table: "CourseEnrollments",
                 column: "StudentId");
@@ -401,6 +442,16 @@ namespace SchoolWebRegister.DAL.Migrations
                 table: "CourseLection",
                 column: "Id",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Logs_InvolvedUserId",
+                table: "Logs",
+                column: "InvolvedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Logs_UserId",
+                table: "Logs",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Profile_Id",
@@ -448,13 +499,13 @@ namespace SchoolWebRegister.DAL.Migrations
                 column: "QuizId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Student_Id",
+                name: "IX_Students_Id",
                 table: "Students",
                 column: "Id",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Student_ProfileId",
+                name: "IX_Students_ProfileId",
                 table: "Students",
                 column: "ProfileId");
         }
@@ -479,6 +530,9 @@ namespace SchoolWebRegister.DAL.Migrations
 
             migrationBuilder.DropTable(
                 name: "CourseEnrollments");
+
+            migrationBuilder.DropTable(
+                name: "Logs");
 
             migrationBuilder.DropTable(
                 name: "QuizAnswer");
