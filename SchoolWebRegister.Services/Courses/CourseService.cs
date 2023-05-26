@@ -1,9 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
-using SchoolWebRegister.DAL;
 using SchoolWebRegister.DAL.Repositories;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
-using System.Collections.Generic;
+using SchoolWebRegister.Services.Users;
 using System.Data;
 using System.Data.SqlClient;
 using static System.Collections.Specialized.BitVector32;
@@ -13,10 +12,12 @@ namespace SchoolWebRegister.Services.Courses
     public class CourseService : ICourseService
     {
         private readonly ICourseRepository _repository;
+        private readonly IUserService _userService;
         private readonly IConfiguration _config;
-        public CourseService(ICourseRepository repository, IConfiguration config)
+        public CourseService(ICourseRepository repository, IUserService userService, IConfiguration config)
         {
             _repository = repository;
+            _userService = userService;
             _config = config;
         }
         private async Task CreateSections(string courseId, CourseSection[] sections)
@@ -117,7 +118,7 @@ namespace SchoolWebRegister.Services.Courses
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             conn.Open();
-            string insertQuery = "insert into Course1(Id,Title,AuthorId,CreateTime) values (@id,@title,@authorId,@createTime)";
+            string insertQuery = "insert into Course(Id,Title,AuthorId,CreateTime) values (@id,@title,@authorId,@createTime)";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@id", course.Id);
             cmd.Parameters.AddWithValue("@title", course.Title);
@@ -132,7 +133,7 @@ namespace SchoolWebRegister.Services.Courses
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
-            cmd.CommandText = "SELECT * FROM dbo.Course1";
+            cmd.CommandText = "SELECT * FROM dbo.Course";
             cmd.Parameters.Add("id", SqlDbType.NVarChar, 450);
             cmd.Parameters.Add("title", SqlDbType.NVarChar, 450);
             cmd.Parameters.Add("authorId", SqlDbType.NVarChar, 450);
@@ -368,14 +369,133 @@ namespace SchoolWebRegister.Services.Courses
                 );
             }
         }
-        public async Task DeleteCourse(int courseId)
+        private async Task DeleteSection(string sectionId)
         {
-            //Course? course = await _repository.GetByIdAsync(courseId.ToString());
-            //if (course != null)
-            //    await _repository.DeleteAsync(course);
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            conn.Open();
+            string insertQuery = "DELETE FROM dbo.CourseSection1 WHERE Id = @sectionId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@sectionId", sectionId);
+            await cmd.ExecuteNonQueryAsync();
+            conn.Close();
+        }
+        private async Task DeleteLesson(string lessonId)
+        {
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            conn.Open();
+            string insertQuery = "DELETE FROM dbo.CourseLesson WHERE Id = @lessonId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@lessonId", lessonId);
+            await cmd.ExecuteNonQueryAsync();
+            conn.Close();
+        }
+        private async Task DeleteQuiz(string quizId)
+        {
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            conn.Open();
+            string insertQuery = "DELETE FROM dbo.CourseQuiz WHERE QuizId = @quizId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@quizId", quizId);
+            await cmd.ExecuteNonQueryAsync();
+            conn.Close();
+        }
+        private async Task DeleteQuestion(string questionId)
+        {
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            conn.Open();
+            string insertQuery = "DELETE FROM CourseQuizQuestion WHERE Id = @questionId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@questionId", questionId);
+            await cmd.ExecuteNonQueryAsync();
+            conn.Close();
+        }
+        private async Task DeleteQuestionAnswers(string answerId)
+        {
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            conn.Open();
+            string insertQuery = "DELETE FROM CourseQuestionAnswer WHERE Id = @answerId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@answerId", answerId);
+            await cmd.ExecuteNonQueryAsync();
+            conn.Close();
+        }
+        private async Task DeleteCourseBase(string courseId)
+        {
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            conn.Open();
+            string insertQuery = "DELETE FROM Course WHERE Id = @courseId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@courseId", courseId);
+            await cmd.ExecuteNonQueryAsync();
+            conn.Close();
+        }
+
+        public async Task<BaseResponse> DeleteCourse(string courseId)
+        {
+            var course = await GetCourseById(courseId);
+
+            if (course == null)
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: "INVALID_DATA"
+                );
+
+            try
+            {
+                foreach (var section in course.Sections)
+                {
+                    foreach (var lesson in section.Lessons)
+                    {
+                        var quiz = lesson.Quiz;
+                        foreach (var question in quiz.Questions)
+                        {
+                            foreach (var answer in question.Answers)
+                            {
+                                await DeleteQuestionAnswers(answer.Id);
+                            }
+                            await DeleteQuestion(question.Id);
+                        }
+                        await DeleteQuiz(quiz.Id);
+                        await DeleteLesson(lesson.Id);
+                    }
+                    await DeleteSection(section.Id);
+                }
+                await DeleteCourseBase(courseId);
+
+                return new BaseResponse(code: StatusCode.Success);
+            }
+            catch (Exception ex) 
+            {
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: ex.Message
+                );
+            }
         }
         public async Task<BaseResponse> EnrollStudent(string courseId, string studentId)
         {
+            var student = await _userService.GetUserById(studentId);
+            if (student == null)
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID студента.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                );
+
+            var course = await GetCourseById(courseId);
+            if (course == null)
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID курса.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                );
+
             try
             {
                 SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
@@ -406,7 +526,7 @@ namespace SchoolWebRegister.Services.Courses
             throw new NotImplementedException();
         }
 
-        public async Task<int> GetStudentsCount(int courseId)
+        public async Task<int> GetStudentsCount(string courseId)
         {
             return 0;
             //return _repository.Select().Where(x => x.Id == courseId).Count();
@@ -449,7 +569,7 @@ namespace SchoolWebRegister.Services.Courses
             var result = await GetAllCourses();
             return result.FirstOrDefault(x => x.Id.Equals(id));
         }
-        public IQueryable<ApplicationUser> GetStudentsList(int courseId)
+        public IQueryable<ApplicationUser> GetStudentsList(string courseId)
         {
             throw new NotImplementedException();
         }

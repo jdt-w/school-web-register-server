@@ -51,6 +51,17 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         }
 
         [HttpPost]
+        [Route("/course/delete")]
+        public async Task<IActionResult> DeleteCourse(string courseId)
+        {
+            var result = await _courseService.DeleteCourse(courseId);
+            if (result.Status == Domain.StatusCode.Success.ToString())
+                return Ok(result);
+            else
+                return BadRequest(result);
+        }
+
+        [HttpPost]
         [Route("/course/enroll")]
         public async Task<IActionResult> EnrollStudent(string courseId, string studentId)
         {

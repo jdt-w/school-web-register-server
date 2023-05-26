@@ -8,7 +8,7 @@ namespace SchoolWebRegister.Domain.Entity
     {
         public string Id { get; set; }
         public Profile Profile { get; set; }
-        public ICollection<Course> Courses { get; set; }
-        public ICollection<CourseEnrollment> Enrollments { get; set; }
+        //public ICollection<Course> Courses { get; set; }
+        //public ICollection<CourseEnrollment> Enrollments { get; set; }
     }
 }

@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using SchoolWebRegister.Domain.Entity;
+using System.Text.Json.Serialization;
 
 namespace SchoolWebRegister.Services.Courses
 {
-    [PrimaryKey(nameof(Id))]
     public class CourseSection
     {
         public string Id { get; set; }
@@ -10,7 +10,6 @@ namespace SchoolWebRegister.Services.Courses
         public string Title { get; set; }
         public CourseLesson[] Lessons { get; set; }
     }
-    [PrimaryKey(nameof(Id))]
     public class CourseLesson
     {
         public string Id { get; set; }
@@ -19,7 +18,6 @@ namespace SchoolWebRegister.Services.Courses
         public string Content { get; set; }
         public CourseQuiz? Quiz { get; set; }
     }
-    [PrimaryKey(nameof(Id))]
     public sealed class CourseInfo
     {
         public string Id { get; set; }

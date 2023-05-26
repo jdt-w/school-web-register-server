@@ -161,28 +161,6 @@ namespace SchoolWebRegister.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Course",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CourseName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Course", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Course_AspNetUsers_AuthorId",
-                        column: x => x.AuthorId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Logs",
                 columns: table => new
                 {
@@ -205,12 +183,12 @@ namespace SchoolWebRegister.DAL.Migrations
                     //    column: x => x.InvolvedUserId,
                     //    principalTable: "AspNetUsers",
                     //    principalColumn: "Id");
-                    table.ForeignKey(
-                        name: "FK_Logs_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                    //table.ForeignKey(
+                    //    name: "FK_Logs_AspNetUsers_UserId",
+                    //    column: x => x.UserId,
+                    //    principalTable: "AspNetUsers",
+                    //    principalColumn: "Id",
+                    //    onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -237,28 +215,6 @@ namespace SchoolWebRegister.DAL.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CourseLection",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CourseId = table.Column<int>(type: "nvarchar(max)", nullable: false),
-                    LectionName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CourseLection", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_CourseLection_Course_CourseId",
-                        column: x => x.CourseId,
-                        principalTable: "Course",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Students",
                 columns: table => new
                 {
@@ -268,106 +224,12 @@ namespace SchoolWebRegister.DAL.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Students", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Students_Profile_ProfileId",
-                        column: x => x.ProfileId,
-                        principalTable: "Profile",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Quiz",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    PassThreshold = table.Column<decimal>(type: "decimal(3,2)", nullable: false),
-                    PublishedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    StartsAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    EndsAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CourseLectionId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Quiz", x => x.Id);
-                    table.CheckConstraint("PassThreshold", "PassThreshold > 0 AND PassThreshold < 1");
-                    table.ForeignKey(
-                        name: "FK_Quiz_CourseLection_CourseLectionId",
-                        column: x => x.CourseLectionId,
-                        principalTable: "CourseLection",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "CourseEnrollments",
-                columns: table => new
-                {
-                    StudentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CourseId = table.Column<int>(type: "nvarchar(max)", nullable: false),
-                    Progress = table.Column<decimal>(type: "decimal(2,1)", nullable: false, defaultValue: 0m)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CourseEnrollments", x => new { x.CourseId, x.StudentId });
-                    table.ForeignKey(
-                        name: "FK_CourseEnrollments_Course_CourseId",
-                        column: x => x.CourseId,
-                        principalTable: "Course",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CourseEnrollments_Students_StudentId",
-                        column: x => x.StudentId,
-                        principalTable: "Students",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "QuizQuestion",
-                columns: table => new
-                {
-                    QuestionId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    QuizId = table.Column<int>(type: "int", nullable: false),
-                    Text = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    MultiChoice = table.Column<bool>(type: "bit", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_QuizQuestion", x => x.QuestionId);
-                    table.ForeignKey(
-                        name: "FK_QuizQuestion_Quiz_QuizId",
-                        column: x => x.QuizId,
-                        principalTable: "Quiz",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "QuizAnswer",
-                columns: table => new
-                {
-                    AnswerId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Text = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    IsCorrect = table.Column<bool>(type: "bit", nullable: false),
-                    QuestionId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_QuizAnswer", x => x.AnswerId);
-                    table.ForeignKey(
-                        name: "FK_QuizAnswer_QuizQuestion_QuestionId",
-                        column: x => x.QuestionId,
-                        principalTable: "QuizQuestion",
-                        principalColumn: "QuestionId",
-                        onDelete: ReferentialAction.Cascade);
+                    //table.ForeignKey(
+                    //    name: "FK_Students_Profile_ProfileId",
+                    //    column: x => x.ProfileId,
+                    //    principalTable: "Profile",
+                    //    principalColumn: "Id",
+                    //    onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -416,34 +278,6 @@ namespace SchoolWebRegister.DAL.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Course_AuthorId",
-                table: "Course",
-                column: "AuthorId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Course_Id",
-                table: "Course",
-                column: "Id",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CourseEnrollments_StudentId",
-                table: "CourseEnrollments",
-                column: "StudentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CourseLection_CourseId",
-                table: "CourseLection",
-                column: "CourseId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CourseLection_Id",
-                table: "CourseLection",
-                column: "Id",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Logs_InvolvedUserId",
                 table: "Logs",
                 column: "InvolvedUserId");
@@ -464,39 +298,6 @@ namespace SchoolWebRegister.DAL.Migrations
                 table: "Profile",
                 column: "UserId",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Quiz_CourseLectionId",
-                table: "Quiz",
-                column: "CourseLectionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Quiz_Id",
-                table: "Quiz",
-                column: "Id",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizAnswer_AnswerId",
-                table: "QuizAnswer",
-                column: "AnswerId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizAnswer_QuestionId",
-                table: "QuizAnswer",
-                column: "QuestionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizQuestion_QuestionId",
-                table: "QuizQuestion",
-                column: "QuestionId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizQuestion_QuizId",
-                table: "QuizQuestion",
-                column: "QuizId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Students_Id",
@@ -529,34 +330,16 @@ namespace SchoolWebRegister.DAL.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "CourseEnrollments");
-
-            migrationBuilder.DropTable(
                 name: "Logs");
-
-            migrationBuilder.DropTable(
-                name: "QuizAnswer");
-
-            migrationBuilder.DropTable(
-                name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "Students");
 
             migrationBuilder.DropTable(
-                name: "QuizQuestion");
+                name: "AspNetRoles");
 
             migrationBuilder.DropTable(
                 name: "Profile");
-
-            migrationBuilder.DropTable(
-                name: "Quiz");
-
-            migrationBuilder.DropTable(
-                name: "CourseLection");
-
-            migrationBuilder.DropTable(
-                name: "Course");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

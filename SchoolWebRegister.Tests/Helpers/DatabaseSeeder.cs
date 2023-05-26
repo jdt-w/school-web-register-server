@@ -21,6 +21,7 @@ namespace SchoolWebRegister.Tests.Helpers
             IEnumerable<UserRole> roles = new[] { UserRole.Student };
 
             var user = UserHelper.GenerateUser();
+            user.Email = "student@example.com";
 
             foreach (UserRole role in roles)
             {
@@ -57,6 +58,7 @@ namespace SchoolWebRegister.Tests.Helpers
             IEnumerable<UserRole> roles = new[] { UserRole.Teacher };
 
             var user = UserHelper.GenerateUser();
+            user.Email = "teacher@example.com";
 
             foreach (UserRole role in roles)
             {
