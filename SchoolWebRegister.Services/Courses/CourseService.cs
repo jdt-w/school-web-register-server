@@ -17,7 +17,7 @@ namespace SchoolWebRegister.Services.Courses
         public async Task<BaseResponse<bool>> CreateCourse(Course course)
         {
             throw new NotImplementedException();
-            //await _repository.AddAsync(course);
+            await _repository.AddAsync(course);
         }
         public async Task DeleteCourse(int courseId)
         {
