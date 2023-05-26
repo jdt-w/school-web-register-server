@@ -1,22 +1,18 @@
 ﻿using Microsoft.Extensions.Configuration;
-using SchoolWebRegister.DAL.Repositories;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Users;
 using System.Data;
 using System.Data.SqlClient;
-using static System.Collections.Specialized.BitVector32;
 
 namespace SchoolWebRegister.Services.Courses
 {
     public class CourseService : ICourseService
     {
-        private readonly ICourseRepository _repository;
         private readonly IUserService _userService;
         private readonly IConfiguration _config;
-        public CourseService(ICourseRepository repository, IUserService userService, IConfiguration config)
+        public CourseService(IUserService userService, IConfiguration config)
         {
-            _repository = repository;
             _userService = userService;
             _config = config;
         }

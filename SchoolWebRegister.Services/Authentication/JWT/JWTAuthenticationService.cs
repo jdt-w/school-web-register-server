@@ -178,7 +178,7 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             if (!accessResult.IsValid && isAccesssExpired)
             {
                 var jwtSecurityToken = new JwtSecurityTokenHandler().ReadJwtToken(refreshToken);
-                string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("uid"))?.Value;
+                string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("guid"))?.Value;
                 ApplicationUser? user = await _userService.GetUserById(userId);
 
                 if (user == null) 

@@ -38,20 +38,20 @@ namespace SchoolWebRegister.DAL
             {
                 b.HasMany(e => e.Claims)
                    .WithOne(e => e.User)
-                   //.HasForeignKey(uc => uc.UserId)
+                   .HasForeignKey(uc => uc.UserId)
                    .IsRequired()
                    .OnDelete(DeleteBehavior.Cascade);
 
                 // Each User can have many entries in the UserRole join table
                 b.HasMany(e => e.UserRoles)
                     .WithOne(e => e.User)
-                    //.HasForeignKey(ur => ur.UserId)
+                    .HasForeignKey(ur => ur.UserId)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Cascade);
 
                 b.HasOne(e => e.Profile)
                     .WithOne(e => e.User)
-                    //.HasForeignKey<Profile>(e => e.UserId)
+                    .HasForeignKey<Profile>(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });  
             modelBuilder.Entity<ApplicationRole>(b =>
@@ -59,14 +59,14 @@ namespace SchoolWebRegister.DAL
                 // Each Role can have many entries in the UserRole join table
                 b.HasMany(e => e.UserRoles)
                     .WithOne(e => e.Role)
-                    //.HasForeignKey(ur => ur.RoleId)
+                    .HasForeignKey(ur => ur.RoleId)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Cascade);
 
                 // Each Role can have many associated RoleClaims
                 b.HasMany(e => e.RoleClaims)
                     .WithOne(e => e.Role)
-                    //.HasForeignKey(rc => rc.RoleId)
+                    .HasForeignKey(rc => rc.RoleId)
                     .IsRequired()
                     .OnDelete(DeleteBehavior.Cascade);
             });

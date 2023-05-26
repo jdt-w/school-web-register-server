@@ -6,6 +6,8 @@ using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
 using SchoolWebRegister.Web.ViewModels.Account;
+using System.Data;
+using System.IdentityModel.Tokens.Jwt;
 using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 
 namespace SchoolWebRegister.Web.Areas.Users.Controllers
@@ -124,7 +126,25 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             string? accessToken = Request.Cookies["accessToken"];
             string? refreshToken = Request.Cookies["refreshToken"];
 
-            return await _authenticationService.Authenticate(accessToken, refreshToken);
+            var result = await _authenticationService.Authenticate(accessToken, refreshToken);
+            if (result is not OkObjectResult)
+            {
+                _authenticationService.AppendInvalidCookies();
+                return BadRequest(result);
+            }
+
+            var accessResult = await _authenticationService.ValidateAndDecode(accessToken);
+            var refreshResult = await _authenticationService.ValidateAndDecode(refreshToken);
+
+            var jwtSecurityToken = new JwtSecurityTokenHandler().ReadJwtToken(refreshToken);
+            string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("guid"))?.Value;
+            ApplicationUser? user = await _userService.GetUserById(userId);
+            var roles = await _userService.GetUserRoles(user);
+
+            return Ok(new BaseResponse(
+                code: Domain.StatusCode.Success,
+                data: new AuthenticationResponse(user, roles)
+            ));
         }
 
         [AllowAnonymous]
