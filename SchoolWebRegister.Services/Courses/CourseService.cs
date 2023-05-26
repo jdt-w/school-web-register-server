@@ -374,11 +374,34 @@ namespace SchoolWebRegister.Services.Courses
             //if (course != null)
             //    await _repository.DeleteAsync(course);
         }
-        public async Task<BaseResponse> EnrollStudent(int courseId, string studentId)
+        public async Task<BaseResponse> EnrollStudent(string courseId, string studentId)
         {
-            throw new NotImplementedException();
+            try
+            {
+                SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+                conn.Open();
+                string insertQuery = "insert into CourseEnrollments(StudentId,CourseId,Progress) values (@studentId,@courseId,@progress)";
+                SqlCommand cmd = new SqlCommand(insertQuery, conn);
+                cmd.Parameters.AddWithValue("@studentId", studentId);
+                cmd.Parameters.AddWithValue("@courseId", courseId);
+                cmd.Parameters.AddWithValue("@progress", 0);
+                await cmd.ExecuteNonQueryAsync();
+                conn.Close();
+
+                return new BaseResponse(
+                   code: StatusCode.Success,
+                   data: courseId
+               );
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: ex.Message
+                );
+            }
         }
-        public async Task<BaseResponse> ExpelStudent(int courseId, string studentId)
+        public async Task<BaseResponse> ExpelStudent(string courseId, string studentId)
         {
             throw new NotImplementedException();
         }

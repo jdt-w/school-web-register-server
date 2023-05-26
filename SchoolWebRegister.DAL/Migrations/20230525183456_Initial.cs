@@ -242,7 +242,7 @@ namespace SchoolWebRegister.DAL.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    CourseId = table.Column<int>(type: "int", nullable: false),
+                    CourseId = table.Column<int>(type: "nvarchar(max)", nullable: false),
                     LectionName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: true)
@@ -308,7 +308,7 @@ namespace SchoolWebRegister.DAL.Migrations
                 columns: table => new
                 {
                     StudentId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    CourseId = table.Column<int>(type: "int", nullable: false),
+                    CourseId = table.Column<int>(type: "nvarchar(max)", nullable: false),
                     Progress = table.Column<decimal>(type: "decimal(2,1)", nullable: false, defaultValue: 0m)
                 },
                 constraints: table =>

@@ -131,7 +131,7 @@ var service = builder.Services.BuildServiceProvider().GetRequiredService<IUserSe
 var provider = builder.Services.BuildServiceProvider();
 //service.DeleteUser("60b34ee2-846d-4db6-8ac3-4c903d7642b3");
 //SchoolWebRegister.Tests.Helpers.DatabaseSeeder.GenerateTeacher(provider);
-SchoolWebRegister.Tests.Helpers.DatabaseSeeder.GenerateStudent(provider);
+//SchoolWebRegister.Tests.Helpers.DatabaseSeeder.GenerateStudent(provider);
 
 
 if (app.Environment.IsDevelopment())

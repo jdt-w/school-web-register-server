@@ -49,5 +49,25 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             else
                 return BadRequest(result);
         }
+
+        [HttpPost]
+        [Route("/course/enroll")]
+        public async Task<IActionResult> EnrollStudent(string courseId, string studentId)
+        {
+            if (string.IsNullOrWhiteSpace(courseId) || string.IsNullOrWhiteSpace(studentId))
+                return BadRequest(new BaseResponse(
+                    code: Domain.StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Type = new string[] { "MISSING_DATA" }
+                    }
+                ));
+
+            var result = await _courseService.EnrollStudent(courseId, studentId);            
+            return Ok(new BaseResponse(
+               code: Domain.StatusCode.Success,
+               data: result
+            ));
+        }
     }
 }
