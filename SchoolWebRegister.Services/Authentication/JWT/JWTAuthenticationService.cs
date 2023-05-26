@@ -52,12 +52,13 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             };
             _context.Response.Cookies.Append("refreshToken", refreshToken, refreshOptions);
         }
-        private void AppendInvalidCookies()
+        public void AppendInvalidCookies()
         {
             CookieOptions options = new CookieOptions
             {
                 Expires = DateTimeOffset.UtcNow.AddDays(-1),
-                MaxAge = TimeSpan.Zero
+                MaxAge = TimeSpan.Zero,
+                SameSite = SameSiteMode.None
             };
             _context.Response.Cookies.Append("accessToken", string.Empty, options);
             _context.Response.Cookies.Append("refreshToken", string.Empty, options);
@@ -147,14 +148,16 @@ namespace SchoolWebRegister.Services.Authentication.JWT
         {
             return user.Identity.IsAuthenticated;
         }
-        public async Task<BaseResponse<IActionResult>> Authenticate(string? accessToken, string? refreshToken)
+        public async Task<IActionResult> Authenticate(string? accessToken, string? refreshToken)
         {
             if (string.IsNullOrEmpty(refreshToken))
-                return new BaseResponse<IActionResult>
-                {
-                    Data = new UnauthorizedResult(),
-                    StatusCode = StatusCode.Unauthorized
-                };
+                return new UnauthorizedObjectResult(new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Type = new string[]{ "AUTH_NOT_AUTHORIZED", "INVALID_TOKENS" }
+                    }
+                ));
 
             var accessResult = await ValidateAndDecode(accessToken);
             var refreshResult = await ValidateAndDecode(refreshToken);
@@ -163,12 +166,13 @@ namespace SchoolWebRegister.Services.Authentication.JWT
             if ((!refreshResult.IsValid || isRefreshExpired) || (!accessResult.IsValid && !isAccesssExpired))
             {
                 await SignOut();
-                return new BaseResponse<IActionResult>
-                {
-                    Data = new UnauthorizedResult(),
-                    Description = "Access or refresh token is invalid.",
-                    StatusCode = StatusCode.Unauthorized
-                };
+                return new UnauthorizedObjectResult(new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Type = new string[] { "AUTH_NOT_AUTHORIZED", "INVALID_TOKENS" }
+                    }
+                ));
             }
 
             if (!accessResult.IsValid && isAccesssExpired)
@@ -177,22 +181,22 @@ namespace SchoolWebRegister.Services.Authentication.JWT
                 string? userId = jwtSecurityToken.Claims.FirstOrDefault(x => x.Type.Equals("uid"))?.Value;
                 ApplicationUser? user = await _userService.GetUserById(userId);
 
-                if (user == null) return new BaseResponse<IActionResult>
-                {
-                    Data = new UnauthorizedResult(),
-                    Description = "UID claim is invalid.",
-                    StatusCode = StatusCode.Unauthorized
-                };
+                if (user == null) 
+                    return new UnauthorizedObjectResult(new BaseResponse(
+                        code: StatusCode.Error,
+                        error: new ErrorType
+                        { 
+                            Type = new string[] { "AUTH_NOT_AUTHORIZED", "INVALID_DATA" }
+                        }
+                    ));
 
                 var newAccessToken = await CreateAccessJwtToken(user);
                 AppendCookies(new JwtSecurityTokenHandler().WriteToken(newAccessToken), refreshToken);
             }
 
-            return new BaseResponse<IActionResult>
-            {
-                Data = new OkResult(),
-                StatusCode = StatusCode.Successful
-            };
+            return new OkObjectResult(new BaseResponse(
+                code: StatusCode.Success
+            ));
         }
         public async Task<IActionResult> SignIn(ApplicationUser user, SecurityToken accessToken, SecurityToken refreshToken)
         {

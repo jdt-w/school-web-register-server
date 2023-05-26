@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
 using SchoolWebRegister.Web.ViewModels.Account;
-using System.Net;
 using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 
 namespace SchoolWebRegister.Web.Areas.Users.Controllers
@@ -65,7 +65,10 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         [Route("/users/login")]
         public async Task<IActionResult> Login([FromBody] LoginViewModel model)
         {
-            if (model == null) return Unauthorized();
+            if (model == null) return Unauthorized(new BaseResponse(            
+                code: Domain.StatusCode.Error,
+                error: "MISSING_DATA"
+            ));
 
             if (ModelState.IsValid)
             {
@@ -77,12 +80,22 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
                     var refreshToken = await _authenticationService.CreateRefreshJwtToken(user, model.RememberMe);
 
                     await _authenticationService.SignIn(user, accessToken, refreshToken);
-                    
-                    return Ok(new AuthenticationResponse(user));
+
+                    return Ok(new BaseResponse(                    
+                        code: Domain.StatusCode.Success,
+                        data: new AuthenticationResponse(user)
+                    ));
                 }
-                ModelState.AddModelError(nameof(LoginViewModel.Email), "Неверный логин или пароль");
             }
-            return Unauthorized();
+
+            return Unauthorized(new BaseResponse(
+                code: Domain.StatusCode.Error,
+                error: new ErrorType
+                {
+                    Message = "Неверный логин или пароль.",
+                    Type = new string[] { "INVALID_DATA" },
+                }
+            ));
         }
 
         [AllowAnonymous]
@@ -110,7 +123,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             string? refreshToken = Request.Cookies["refreshToken"];
 
             var result = await _authenticationService.Authenticate(accessToken, refreshToken);
-            return result.Data;
+            return result;
         }
 
         [AllowAnonymous]
@@ -136,7 +149,43 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
         public async Task<IActionResult> Logout()
         {
             await _authenticationService.SignOut();
-            return new OkObjectResult("Status Code 440: Authentication token expired.");
+            return new StatusCodeResult(StatusCodes.Status409Conflict);
+        }
+
+        [HttpPost]
+        [Route("/users/changePassword")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordViewModel changePasswordModel)
+        {
+            ApplicationUser? user = await _userService.GetUserById(changePasswordModel.GUID);
+
+            if (user == null)
+                return BadRequest(new BaseResponse(
+                    code: Domain.StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID пользователя.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                ));
+
+            bool isPasswordValid = _userService.ValidatePassword(user, changePasswordModel.OldPassword);
+            if (!isPasswordValid)
+                return BadRequest(new BaseResponse(
+                   code: Domain.StatusCode.Error,
+                   error: new ErrorType
+                   {
+                       Message = "Неверный старый пароль.",
+                       Type = new string[] { "INVALID_DATA" }
+                   }
+               ));
+
+            var result = await _userService.ChangePassword(user, changePasswordModel.NewPassword);
+            if (result.Status == Domain.StatusCode.Success.ToString())
+            {
+                return Ok(result);
+            }
+
+            return BadRequest(result);
         }
     }
 }

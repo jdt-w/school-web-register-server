@@ -55,50 +55,47 @@ namespace SchoolWebRegister.Services.Users
         }
         public bool ValidatePassword(ApplicationUser user, string password)
         {
+            if (string.IsNullOrEmpty(password))
+                return false;
+
             return HashPasswordHelper.VerifyPassword(user, password);
         }
-        public async Task<BaseResponse<bool>> CreateUser(ApplicationUser user)
+        public async Task<BaseResponse> CreateUser(ApplicationUser user)
         {
             try
             {
                 await ValidateIfUserExist(user.Id);
                 var result = await _userRepository.AddAsync(user);
 
-                return new BaseResponse<bool>
-                {
-                    Data = result != null,
-                    StatusCode = result != null ? StatusCode.Successful : StatusCode.BadRequest
-                };
+                return new BaseResponse(
+                    code: result != null ? StatusCode.Success : StatusCode.Error
+                );
             }
             catch (Exception ex)
             {
-                return new BaseResponse<bool>
-                {
-                    Description = $"[CreateUser]: {ex.Message}",
-                    StatusCode = StatusCode.InternalServerError
-                };
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType { Message = ex.Message }
+                );
             }
         }
-        public async Task<BaseResponse<bool>> DeleteUser(string guid)
+        public async Task<BaseResponse> DeleteUser(string guid)
         {
             try
             {
                 ApplicationUser? user = await ValidateIfUserNotExist(guid);
                 await _userRepository.DeleteAsync(user);
 
-                return new BaseResponse<bool>
-                {
-                    Data = true,
-                    StatusCode = StatusCode.Successful
-                };
+                return new BaseResponse(
+                    code: StatusCode.Success
+                );
             }
             catch (Exception ex)
             {
-                return new BaseResponse<bool>
-                {
-                    Description = $"[DeleteUser]: {ex.Message}",
-                    StatusCode = StatusCode.InternalServerError,
-                };
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType { Message = ex.Message }
+                );
             }
         }
         public async Task<ApplicationUser?> GetUserById(string guid)
@@ -125,26 +122,23 @@ namespace SchoolWebRegister.Services.Users
                 return null;
             }
         }
-        public async Task<BaseResponse<ApplicationUser>> UpdateUser(ApplicationUser modifiedUser)
+        public async Task<BaseResponse> UpdateUser(ApplicationUser modifiedUser)
         {
             try
             {
                 ApplicationUser? editUser = await ValidateIfUserNotExist(modifiedUser.Id);
 
                 var result = await _userRepository.UpdateAsync(editUser);  
-                return new BaseResponse<ApplicationUser>
-                {
-                    Data = result,
-                    StatusCode = result != null ? StatusCode.Successful : StatusCode.BadRequest
-                };
+                return new BaseResponse(
+                    code: result != null ? StatusCode.Success : StatusCode.Error
+                );
             }
             catch (Exception ex)
             {
-                return new BaseResponse<ApplicationUser>
-                {
-                    Description = $"[UpdateUser]: {ex.Message}",
-                    StatusCode = StatusCode.InternalServerError
-                };
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType { Message = ex.Message }
+                );
             }
         }
         public IQueryable<ApplicationUser> GetUsers()
@@ -201,18 +195,31 @@ namespace SchoolWebRegister.Services.Users
             var claims = roles.Select(x => new Claim(ClaimTypes.Role, x.ToString()));
             await AddClaims(user, claims);
         }
-        public async Task<BaseResponse<bool>> ChangePassword(ApplicationUser user, string newPassword)
+        public async Task<BaseResponse> ChangePassword(ApplicationUser user, string newPassword)
         {
+            if (string.IsNullOrEmpty(newPassword))
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Требуется новый пароль.",
+                        Type = new string[] { "AUTH_NOT_AUTHORIZED", "MISSING_DATA" }
+                    }
+                );
+
             try
             {
                 bool isValid = _passwordValidator.IsValid(newPassword);
                 if (!isValid)
                 {
-                    return new BaseResponse<bool>
-                    {
-                        StatusCode = StatusCode.Forbidden,
-                        Description = "New password doesn't match security requirements."
-                    };
+                    return new BaseResponse(
+                        code: StatusCode.Error,
+                        error: new ErrorType
+                        {
+                            Message = "Новый пароль не соответствует требованиям безопасности.",
+                            Type = new string[] { "AUTH_NOT_AUTHORIZED", "INVALID_DATA" }
+                        }
+                    );
                 }
 
                 bool isSame = HashPasswordHelper.VerifyPassword(user, newPassword);
@@ -220,28 +227,23 @@ namespace SchoolWebRegister.Services.Users
                 {
                     string hash = HashPasswordHelper.HashPassword(newPassword);
                     user.PasswordHash = hash;
-                    var result = await UpdateUser(user);
-                    return new BaseResponse<bool>
-                    {
-                        Data = result.StatusCode == StatusCode.Successful ? true : false,
-                        Description = result.Description,
-                        StatusCode = result.StatusCode
-                    };
+                    return await UpdateUser(user);
                 }
 
-                return new BaseResponse<bool>
-                {
-                    Data = false,
-                    StatusCode = StatusCode.BadRequest,
-                    Description = "New password is already equals old password"
-                };
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                       Message = "Новый пароль не должен совпадать со старым.",
+                       Type = new string[] { "AUTH_NOT_AUTHORIZED", "INVALID_DATA" }
+                    }
+                );
             }
             catch
             {
-                return new BaseResponse<bool>
-                {
-                    StatusCode = StatusCode.InternalServerError
-                };
+                return new BaseResponse(
+                    code: StatusCode.Error
+                );
             }
         }
         public async Task<ApplicationUser?> ValidateCredentials(string? login, string? password)

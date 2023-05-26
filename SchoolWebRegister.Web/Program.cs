@@ -1,12 +1,11 @@
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
-using HotChocolate;
-using HotChocolate.AspNetCore;
-using HotChocolate.AspNetCore.Serialization;
-using HotChocolate.Execution.Serialization;
-using HotChocolate.Types.Pagination;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SchoolWebRegister.DAL;
@@ -17,7 +16,6 @@ using SchoolWebRegister.Domain.Permissions;
 using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Authentication.JWT;
-using SchoolWebRegister.Services.GraphQL;
 using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
 
@@ -78,45 +76,44 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Admin", policy => policy.RequireRole(nameof(UserRole.Administrator)));
     options.AddPolicy("AllUsers", policy =>
     {
-        policy.RequireAssertion(handler =>
+        policy.RequireAssertion(async handler =>
         {
+            HttpContext? httpContext = handler.Resource as HttpContext;
             var service = builder.Services.BuildServiceProvider().GetService<IAuthenticationService>();
-            string? accessToken = (handler.Resource as HttpContext)?.Request.Cookies["accessToken"];
-            string? refreshToken = (handler.Resource as HttpContext)?.Request.Cookies["refreshToken"];
-            var result = service.Authenticate(accessToken, refreshToken).Result;
-            return result.StatusCode == StatusCode.Successful ? true : false;
+            var executor = httpContext.RequestServices.GetRequiredService<IHttpContextAccessor>();
+            string? accessToken = httpContext?.Request.Cookies["accessToken"];
+            string? refreshToken = httpContext?.Request.Cookies["refreshToken"];
+
+            var result = await service.Authenticate(accessToken, refreshToken);
+
+            if (result is OkObjectResult)
+            {                
+                return true;
+            }
+            else
+            {
+                var response = new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Invalid Tokens",
+                        Type = new string[] { "AUTH_NOT_ALLOWED", "INVALID_TOKENS" }
+                    }
+                );
+                string jsonString = JsonSerializer.Serialize(response);
+                byte[] bytes = Encoding.UTF8.GetBytes(jsonString);
+                service.AppendInvalidCookies();
+                httpContext.Response.OnStarting(() =>
+                {
+                    executor.HttpContext.Response.ContentType = "application/json";
+                    executor.HttpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+                    return Task.CompletedTask;
+                });
+                return false;
+            }
         });
     });
 });
-
-var options = new HttpResponseFormatterOptions
-{
-    Json = new JsonResultFormatterOptions
-    {
-        Indented = true,
-        NullIgnoreCondition = JsonNullIgnoreCondition.All,
-    }
-};
-
-builder.Services.AddHttpResponseFormatter(_ => new GraphQLResponseFormatter(options));
-builder.Services
-    .AddGraphQLServer()
-    .SetPagingOptions(new PagingOptions
-    {
-        MaxPageSize = 100,
-        IncludeTotalCount = true
-    })
-    .AddQueryType<UsersQueries>()
-    .AddMutationType<MutationType>()
-    .AddProjections()
-    .AddFiltering()
-    .AddSorting()
-    .AddErrorFilter<GraphQLErrorFilter>()
-    .AddType<BaseResponse>()
-    .AddType<ApplicationUserType>()
-    .AddAuthorizationHandler<JWTAuthorizationFilter>()
-    .ModifyParserOptions(options => options.IncludeLocations = false)
-    .ModifyRequestOptions(options => options.IncludeExceptionDetails = false);
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
@@ -125,6 +122,7 @@ builder.Services.AddScoped<ILogRepository, LogRepository>();
 builder.Services.AddSingleton<IPasswordValidator, PasswordValidator>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+//builder.Services.AddTransient<IAuthorizationHandler, JWTAuthorizationFilter>();
 
 var app = builder.Build();
 
@@ -160,11 +158,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseWebSockets();
-app.MapGraphQL().WithOptions(new GraphQLServerOptions
-{
-    AllowedGetOperations = AllowedGetOperations.QueryAndMutation,
-    EnableGetRequests = true,
-});
 app.MapAreaControllerRoute(
     name: "AdminArea",
     areaName: "Admin",

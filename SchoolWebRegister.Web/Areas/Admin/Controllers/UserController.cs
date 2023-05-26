@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolWebRegister.Domain.Entity;
-using SchoolWebRegister.Domain.Permissions;
 using SchoolWebRegister.Services.Users;
 
 namespace SchoolWebRegister.Web.Areas.Admin.Controllers
@@ -18,21 +17,23 @@ namespace SchoolWebRegister.Web.Areas.Admin.Controllers
 
         public async Task<IActionResult> DeleteUser(ApplicationUser user)
         {
-            var response = await _usersService.DeleteUser(user.Id);
-            if (response.StatusCode == Domain.StatusCode.Successful)
-            {
-                return RedirectToAction("GetUsers");
-            }
-            return RedirectToAction("Error");
+            return Ok();
+            //var response = await _usersService.DeleteUser(user.Id);
+            //if (response.Status == Domain.StatusCode.Success)
+            //{
+            //    return RedirectToAction("GetUsers");
+            //}
+            //return RedirectToAction("Error");
         }
         public async Task<IActionResult> CreateUser(ApplicationUser user)
         {
-            var response = await _usersService.CreateUser(user);
-            if (response.StatusCode == Domain.StatusCode.Successful)
-            {
-                return RedirectToAction("GetUsers");
-            }
-            return RedirectToAction("Error");
+            return Ok();
+            //var response = await _usersService.CreateUser(user);
+            //if (response.Status == Domain.StatusCode.Success)
+            //{
+            //    return RedirectToAction("GetUsers");
+            //}
+            //return RedirectToAction("Error");
         }
     }
 }

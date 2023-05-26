@@ -32,4 +32,9 @@
     <ProjectReference Include="..\SchoolWebRegister.Services\SchoolWebRegister.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Integration Tests\" />
+    <Folder Include="Modal Tests\" />
+  </ItemGroup>
+
 </Project>

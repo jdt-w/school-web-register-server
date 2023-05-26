@@ -36,7 +36,7 @@ namespace SchoolWebRegister.Tests.Helpers
             user.PasswordHash = HashPasswordHelper.HashPassword("secret");
 
             var result = userService.CreateUser(user).GetAwaiter().GetResult();
-            if (result.StatusCode == Domain.StatusCode.Successful)
+            if (result.Status == Domain.StatusCode.Success.ToString())
             {
                 userService.AddToRoles(user, roles).GetAwaiter().GetResult();
 
