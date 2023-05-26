@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SchoolWebRegister.Domain.Entity;
+using SchoolWebRegister.Services.Courses;
 
 namespace SchoolWebRegister.DAL
 {
@@ -9,7 +10,6 @@ namespace SchoolWebRegister.DAL
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
             Database.EnsureCreated();
-            //ClearDatabase();
         }
         public void ClearDatabase()
         {
@@ -137,7 +137,7 @@ namespace SchoolWebRegister.DAL
                    .HasForeignKey(uc => uc.UserId)
                    .IsRequired()
                    .OnDelete(DeleteBehavior.Cascade);
-            });
+            });           
         }
     }
 }

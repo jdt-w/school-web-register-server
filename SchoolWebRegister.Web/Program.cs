@@ -1,9 +1,7 @@
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +10,10 @@ using SchoolWebRegister.DAL;
 using SchoolWebRegister.DAL.Repositories;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
-using SchoolWebRegister.Domain.Permissions;
 using SchoolWebRegister.Services;
 using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Authentication.JWT;
+using SchoolWebRegister.Services.Courses;
 using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
 
@@ -116,8 +114,10 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IAuthenticationService, JWTAuthenticationService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ILogRepository, LogRepository>();
 builder.Services.AddSingleton<IPasswordValidator, PasswordValidator>();
 builder.Services.AddScoped<ILoggingService, LoggingService>();
@@ -130,7 +130,9 @@ var service = builder.Services.BuildServiceProvider().GetRequiredService<IUserSe
 
 var provider = builder.Services.BuildServiceProvider();
 //service.DeleteUser("60b34ee2-846d-4db6-8ac3-4c903d7642b3");
-SchoolWebRegister.Tests.Helpers.DatabaseSeeder.Initialize(provider);
+//SchoolWebRegister.Tests.Helpers.DatabaseSeeder.GenerateTeacher(provider);
+SchoolWebRegister.Tests.Helpers.DatabaseSeeder.GenerateStudent(provider);
+
 
 if (app.Environment.IsDevelopment())
 {

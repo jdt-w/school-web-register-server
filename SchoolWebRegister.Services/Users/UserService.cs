@@ -114,7 +114,7 @@ namespace SchoolWebRegister.Services.Users
             try
             {
                 if (string.IsNullOrWhiteSpace(login)) return null;
-                
+               
                 return await _userRepository.GetUserByLoginAsync(login);
             }
             catch

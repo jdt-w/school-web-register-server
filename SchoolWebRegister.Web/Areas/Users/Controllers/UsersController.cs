@@ -81,9 +81,11 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
 
                     await _authenticationService.SignIn(user, accessToken, refreshToken);
 
+                    var roles = await _userService.GetUserRoles(user);
+
                     return Ok(new BaseResponse(                    
                         code: Domain.StatusCode.Success,
-                        data: new AuthenticationResponse(user)
+                        data: new AuthenticationResponse(user, roles)
                     ));
                 }
             }
@@ -122,8 +124,7 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             string? accessToken = Request.Cookies["accessToken"];
             string? refreshToken = Request.Cookies["refreshToken"];
 
-            var result = await _authenticationService.Authenticate(accessToken, refreshToken);
-            return result;
+            return await _authenticationService.Authenticate(accessToken, refreshToken);
         }
 
         [AllowAnonymous]
