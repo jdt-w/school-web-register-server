@@ -9,9 +9,9 @@ namespace SchoolWebRegister.Services.Courses
         Task<BaseResponse> EnrollStudent(string courseId, string studentId);
         Task<BaseResponse> ExpelStudent(string courseId, string studentId);
         Task<BaseResponse> DeleteCourse(string courseId);
-        Task<int> GetStudentsCount(string courseId);
         Task<IEnumerable<CourseInfo>> GetAllCourses();
         Task<CourseInfo> GetCourseById(string id);
-        IQueryable<ApplicationUser> GetStudentsList(string courseId);
+        Task<IEnumerable<CourseInfo>> GetCoursesFromStudent(string studentId);
+        Task<IEnumerable<ApplicationUser>> GetStudentsList(string courseId);
     }
 }

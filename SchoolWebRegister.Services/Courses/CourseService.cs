@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Data;
+using System.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
 using SchoolWebRegister.Services.Users;
-using System.Data;
-using System.Data.SqlClient;
 
 namespace SchoolWebRegister.Services.Courses
 {
@@ -11,6 +11,7 @@ namespace SchoolWebRegister.Services.Courses
     {
         private readonly IUserService _userService;
         private readonly IConfiguration _config;
+        SqlConnection conn;
         public CourseService(IUserService userService, IConfiguration config)
         {
             _userService = userService;
@@ -21,7 +22,6 @@ namespace SchoolWebRegister.Services.Courses
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             conn.Open();
             string insertQuery = "insert into CourseSection1(Id,Checked,Title,CourseId) values (@id,@checked,@title,@courseId)";
-
             foreach (var section in sections)
             {
                 SqlCommand cmd = new SqlCommand(insertQuery, conn);
@@ -38,9 +38,8 @@ namespace SchoolWebRegister.Services.Courses
         private async Task CreateLessons(string sectionId, CourseLesson[] lessons)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "insert into CourseLesson(Id,Checked,Title,Content,SectionId) values (@id,@checked,@title,@content,@sectionId)";
-
+            conn.Open();
             foreach (var lesson in lessons)
             {
                 SqlCommand cmd = new SqlCommand(insertQuery, conn);
@@ -74,9 +73,8 @@ namespace SchoolWebRegister.Services.Courses
         private async Task CreateQuestions(string quizId, CourseQuestion[] questions)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "insert into CourseQuizQuestion(Id,Checked,Opened,Question,Type,Variant,QuizId) values (@id,@checked,@opened,@question,@type,@variant,@quizId)";
-
+            conn.Open();
             foreach (var question in questions)
             {
                 SqlCommand cmd = new SqlCommand(insertQuery, conn);
@@ -96,9 +94,8 @@ namespace SchoolWebRegister.Services.Courses
         private async Task CreateQuestionAnswers(string questionId, QuizQuestionAnswer[] questionAnswers)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "insert into CourseQuestionAnswer(Id,Answer,IsCorrect,QuestionId) values (@id,@answer,@isCorrect,@questionId)";
-
+            conn.Open();
             foreach (var answer in questionAnswers)
             {
                 SqlCommand cmd = new SqlCommand(insertQuery, conn);
@@ -113,8 +110,8 @@ namespace SchoolWebRegister.Services.Courses
         private async Task CreateCourseBase(CourseInfo course)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "insert into Course(Id,Title,AuthorId,CreateTime) values (@id,@title,@authorId,@createTime)";
+            conn.Open();
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@id", course.Id);
             cmd.Parameters.AddWithValue("@title", course.Title);
@@ -124,8 +121,7 @@ namespace SchoolWebRegister.Services.Courses
             conn.Close();
         }
         private async Task<IEnumerable<CourseInfo>> GetAllCoursesBase()
-        {
-            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+        {           
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
@@ -138,7 +134,6 @@ namespace SchoolWebRegister.Services.Courses
             cmd.Parameters["title"].Direction = ParameterDirection.Output;
             cmd.Parameters["authorId"].Direction = ParameterDirection.Output;
             cmd.Parameters["createTime"].Direction = ParameterDirection.Output;
-            conn.Open();
 
             var list = new List<CourseInfo>();
             using (SqlDataReader reader = cmd.ExecuteReader())
@@ -154,12 +149,10 @@ namespace SchoolWebRegister.Services.Courses
                     });
                 }
             }
-            conn.Close();
             return list;
         }
         private async Task<IEnumerable<CourseSection>> GetCourseSections(CourseInfo course)
         {
-            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
@@ -173,7 +166,6 @@ namespace SchoolWebRegister.Services.Courses
             cmd.Parameters["id"].Direction = ParameterDirection.Output;
             cmd.Parameters["checked"].Direction = ParameterDirection.Output;
             cmd.Parameters["title"].Direction = ParameterDirection.Output;
-            conn.Open();
 
             var list = new List<CourseSection>();
             using (SqlDataReader reader = cmd.ExecuteReader())
@@ -188,12 +180,10 @@ namespace SchoolWebRegister.Services.Courses
                     });
                 }
             }
-            conn.Close();
             return list;
         }
         private async Task<IEnumerable<CourseLesson>> GetSectionLessons(CourseSection section)
         {
-            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
@@ -209,8 +199,7 @@ namespace SchoolWebRegister.Services.Courses
             cmd.Parameters["checked"].Direction = ParameterDirection.Output;
             cmd.Parameters["title"].Direction = ParameterDirection.Output;
             cmd.Parameters["content"].Direction = ParameterDirection.Output;
-            conn.Open();
-
+           
             var list = new List<CourseLesson>();
             using (SqlDataReader reader = cmd.ExecuteReader())
             {
@@ -225,12 +214,11 @@ namespace SchoolWebRegister.Services.Courses
                     });
                 }
             }
-            conn.Close();
+
             return list;
         }
         private async Task<CourseQuiz> GetLessonQuiz(CourseLesson lesson)
         {
-            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
@@ -240,7 +228,6 @@ namespace SchoolWebRegister.Services.Courses
             cmd.Parameters["@lessonId"].Direction = ParameterDirection.Input;
             cmd.Parameters["@lessonId"].Value = lesson.Id;
             cmd.Parameters["quizId"].Direction = ParameterDirection.Output;
-            conn.Open();
 
             using (SqlDataReader reader = cmd.ExecuteReader())
             {
@@ -253,13 +240,11 @@ namespace SchoolWebRegister.Services.Courses
                     };
                 }
             }
-            conn.Close();
 
             return null;
         }
         private async Task<IEnumerable<CourseQuestion>> GetQuizQuestions(CourseQuiz quiz)
         {
-            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
@@ -279,7 +264,6 @@ namespace SchoolWebRegister.Services.Courses
             cmd.Parameters["question"].Direction = ParameterDirection.Output;
             cmd.Parameters["type"].Direction = ParameterDirection.Output;
             cmd.Parameters["variant"].Direction = ParameterDirection.Output;
-            conn.Open();
 
             var list = new List<CourseQuestion>();
             using (SqlDataReader reader = cmd.ExecuteReader())
@@ -300,12 +284,11 @@ namespace SchoolWebRegister.Services.Courses
                     });
                 }
             }
-            conn.Close();
+
             return list;
         }
         private async Task<IEnumerable<QuizQuestionAnswer>> GetQuestionAnswers(CourseQuestion question)
         {
-            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = conn;
             cmd.CommandType = CommandType.Text;
@@ -319,7 +302,6 @@ namespace SchoolWebRegister.Services.Courses
             cmd.Parameters["id"].Direction = ParameterDirection.Output;
             cmd.Parameters["answer"].Direction = ParameterDirection.Output;
             cmd.Parameters["isCorrect"].Direction = ParameterDirection.Output;
-            conn.Open();
 
             var list = new List<QuizQuestionAnswer>();
             using (SqlDataReader reader = cmd.ExecuteReader())
@@ -337,7 +319,6 @@ namespace SchoolWebRegister.Services.Courses
                     });
                 }
             }
-            conn.Close();
             return list;
         }
         public async Task<BaseResponse> CreateCourse(CourseInfo course)
@@ -368,62 +349,50 @@ namespace SchoolWebRegister.Services.Courses
         private async Task DeleteSection(string sectionId)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "DELETE FROM dbo.CourseSection1 WHERE Id = @sectionId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@sectionId", sectionId);
             await cmd.ExecuteNonQueryAsync();
-            conn.Close();
         }
         private async Task DeleteLesson(string lessonId)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "DELETE FROM dbo.CourseLesson WHERE Id = @lessonId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@lessonId", lessonId);
             await cmd.ExecuteNonQueryAsync();
-            conn.Close();
         }
         private async Task DeleteQuiz(string quizId)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "DELETE FROM dbo.CourseQuiz WHERE QuizId = @quizId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@quizId", quizId);
             await cmd.ExecuteNonQueryAsync();
-            conn.Close();
         }
         private async Task DeleteQuestion(string questionId)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "DELETE FROM CourseQuizQuestion WHERE Id = @questionId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@questionId", questionId);
             await cmd.ExecuteNonQueryAsync();
-            conn.Close();
         }
         private async Task DeleteQuestionAnswers(string answerId)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "DELETE FROM CourseQuestionAnswer WHERE Id = @answerId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@answerId", answerId);
             await cmd.ExecuteNonQueryAsync();
-            conn.Close();
         }
         private async Task DeleteCourseBase(string courseId)
         {
             SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            conn.Open();
             string insertQuery = "DELETE FROM Course WHERE Id = @courseId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@courseId", courseId);
             await cmd.ExecuteNonQueryAsync();
-            conn.Close();
         }
 
         public async Task<BaseResponse> DeleteCourse(string courseId)
@@ -436,8 +405,10 @@ namespace SchoolWebRegister.Services.Courses
                     error: "INVALID_DATA"
                 );
 
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             try
             {
+                conn.Open();
                 foreach (var section in course.Sections)
                 {
                     foreach (var lesson in section.Lessons)
@@ -466,6 +437,10 @@ namespace SchoolWebRegister.Services.Courses
                     code: StatusCode.Error,
                     error: ex.Message
                 );
+            }
+            finally
+            { 
+                conn.Close(); 
             }
         }
         public async Task<BaseResponse> EnrollStudent(string courseId, string studentId)
@@ -519,45 +494,127 @@ namespace SchoolWebRegister.Services.Courses
         }
         public async Task<BaseResponse> ExpelStudent(string courseId, string studentId)
         {
-            throw new NotImplementedException();
-        }
+            var student = await _userService.GetUserById(studentId);
+            if (student == null)
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID студента.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                );
 
-        public async Task<int> GetStudentsCount(string courseId)
+            var course = await GetCourseById(courseId);
+            if (course == null)
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID курса.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                );
+
+            try
+            {
+                SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+                conn.Open();
+                string insertQuery = "DELETE FROM CourseEnrollments WHERE CourseId = @courseId AND StudentId = @studentId";
+                SqlCommand cmd = new SqlCommand(insertQuery, conn);
+                cmd.Parameters.AddWithValue("@studentId", studentId);
+                cmd.Parameters.AddWithValue("@courseId", courseId);
+                await cmd.ExecuteNonQueryAsync();
+                conn.Close();
+
+                return new BaseResponse(
+                   code: StatusCode.Success,
+                   data: courseId
+               );
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: ex.Message
+                );
+            }
+        }
+        public async Task<IEnumerable<CourseInfo>> GetCoursesFromStudent(string studentId)
         {
-            return 0;
-            //return _repository.Select().Where(x => x.Id == courseId).Count();
+            var student = await _userService.GetUserById(studentId);
+            if (student == null)
+                return null;
+
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            string insertQuery = "SELECT (CourseId) FROM CourseEnrollments WHERE StudentId = @studentId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@studentId", studentId);
+            cmd.Parameters.AddWithValue("courseId", studentId);
+            cmd.Parameters["courseId"].Direction = ParameterDirection.Output;
+
+            var list = new List<CourseInfo>();
+            try
+            {
+                conn.Open();
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var course = await GetCourseById(reader["courseId"].ToString());
+                        list.Add(course);
+                    }
+                }
+            }
+            finally
+            {
+                conn.Close();
+            }
+            return list;
         }
         public async Task<IEnumerable<CourseInfo>> GetAllCourses()
         {
-            var courseBases = await GetAllCoursesBase();
+            IEnumerable<CourseInfo> courseBases;
 
-            foreach (CourseInfo course in courseBases) 
+            conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            conn.Open();
+
+            try
             {
-                var sections = await GetCourseSections(course);
-                course.Sections = sections.ToArray();
+                courseBases = await GetAllCoursesBase();
 
-                foreach (CourseSection section in sections)
+                foreach (CourseInfo course in courseBases)
                 {
-                    var lessons = await GetSectionLessons(section);
-                    section.Lessons = lessons.ToArray();
+                    var sections = await GetCourseSections(course);
+                    course.Sections = sections.ToArray();
 
-                    foreach (CourseLesson lesson in lessons)
+                    foreach (CourseSection section in sections)
                     {
-                        var quiz = await GetLessonQuiz(lesson);
-                        lesson.Quiz = quiz;
+                        var lessons = await GetSectionLessons(section);
+                        section.Lessons = lessons.ToArray();
 
-                        var questions = await GetQuizQuestions(quiz);
-                        lesson.Quiz.Questions = questions.ToArray();
-
-                        foreach (var question in questions)
+                        foreach (CourseLesson lesson in lessons)
                         {
-                            var answers = await GetQuestionAnswers(question);
-                            question.Answers = answers.ToArray();
+                            var quiz = await GetLessonQuiz(lesson);
+                            lesson.Quiz = quiz;
+
+                            var questions = await GetQuizQuestions(quiz);
+                            lesson.Quiz.Questions = questions.ToArray();
+
+                            foreach (var question in questions)
+                            {
+                                var answers = await GetQuestionAnswers(question);
+                                question.Answers = answers.ToArray();
+                            }
                         }
                     }
                 }
             }
-
+            finally
+            {
+                conn.Close();
+            }
+            
             return courseBases;
         }
         public async Task<CourseInfo> GetCourseById(string id)
@@ -565,9 +622,37 @@ namespace SchoolWebRegister.Services.Courses
             var result = await GetAllCourses();
             return result.FirstOrDefault(x => x.Id.Equals(id));
         }
-        public IQueryable<ApplicationUser> GetStudentsList(string courseId)
+        public async Task<IEnumerable<ApplicationUser>> GetStudentsList(string courseId)
         {
-            throw new NotImplementedException();
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            SqlCommand cmd = new SqlCommand();
+            cmd.Connection = conn;
+            cmd.CommandType = CommandType.Text;
+            cmd.CommandText = "SELECT (StudentId) FROM dbo.CourseEnrollments WHERE CourseId = @courseId";
+            cmd.Parameters.Add("studentId", SqlDbType.NVarChar, 450);
+            cmd.Parameters.Add("@courseId", SqlDbType.NVarChar, 450);
+            cmd.Parameters["@courseId"].Direction = ParameterDirection.Input;
+            cmd.Parameters["@courseId"].Value = courseId;
+            cmd.Parameters["studentId"].Direction = ParameterDirection.Output;
+
+            var list = new List<ApplicationUser>();
+            try
+            {
+                conn.Open();
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var user = await _userService.GetUserById(reader["studentId"].ToString());
+                        if (user != null) list.Add(user);
+                    }
+                }
+            }
+            finally
+            {
+                conn.Close();
+            }
+            return list;
         }
     }
 }

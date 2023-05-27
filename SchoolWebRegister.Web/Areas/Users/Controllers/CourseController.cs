@@ -39,6 +39,28 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             ));
         }
 
+        [HttpGet]
+        [Route("/course/getStudents")]
+        public async Task<IActionResult> GetStudents(string courseId)
+        {
+            var result = await _courseService.GetStudentsList(courseId);
+            return Ok(new BaseResponse(
+               code: Domain.StatusCode.Success,
+               data: result
+            ));
+        }
+
+        [HttpGet]
+        [Route("/course/getCoursesFromStudent")]
+        public async Task<IActionResult> GetCoursesFromStudent(string studentId)
+        {
+            var result = await _courseService.GetCoursesFromStudent(studentId);
+            return Ok(new BaseResponse(
+               code: Domain.StatusCode.Success,
+               data: result
+            ));
+        }
+
         [HttpPost]
         [Route("/course/create")]
         public async Task<IActionResult> CreateCourse([FromBody] CourseInfo course)
@@ -90,6 +112,23 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
                 ));
 
             var result = await _courseService.EnrollStudent(courseId, studentId);            
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("/course/expel")]
+        public async Task<IActionResult> ExpelStudent(string courseId, string studentId)
+        {
+            if (string.IsNullOrWhiteSpace(courseId) || string.IsNullOrWhiteSpace(studentId))
+                return BadRequest(new BaseResponse(
+                    code: Domain.StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Type = new string[] { "MISSING_DATA" }
+                    }
+                ));
+
+            var result = await _courseService.ExpelStudent(courseId, studentId);
             return Ok(new BaseResponse(
                code: Domain.StatusCode.Success,
                data: result
