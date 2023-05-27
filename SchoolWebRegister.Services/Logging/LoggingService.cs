@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using SchoolWebRegister.DAL.Repositories;
+using SchoolWebRegister.Domain;
 using SchoolWebRegister.Domain.Entity;
 
 namespace SchoolWebRegister.Services.Logging
@@ -14,6 +15,14 @@ namespace SchoolWebRegister.Services.Logging
             _logRepository = repository;
         }
 
+        public async Task<BaseResponse> ReadAllLogs()
+        {
+            var result = await _logRepository.SelectAsync();
+            return new BaseResponse(
+                code: StatusCode.Success,
+                data: result
+            );           
+        }
         public async Task LogEventAction(ActionLog log)
         {
             await _logRepository.LogActionEvent(log);

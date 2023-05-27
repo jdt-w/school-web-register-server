@@ -11,6 +11,43 @@ namespace SchoolWebRegister.Tests.Helpers
 {
     public static class DatabaseSeeder
     {
+        public static async void GenerateAdmin(IServiceProvider serviceProvider)
+        {
+            var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var userService = serviceProvider.GetRequiredService<IUserService>();
+
+            IEnumerable<UserRole> roles = new[] { UserRole.Administrator };
+
+            var user = UserHelper.GenerateUser();
+            user.Email = "admin@example.com";
+
+            foreach (UserRole role in roles)
+            {
+                string str = role.ToString();
+                if (!roleManager.RoleExistsAsync(str).Result)
+                {
+                    roleManager.CreateAsync(new IdentityRole(str)).GetAwaiter().GetResult();
+                }
+            }
+
+            user.PasswordHash = HashPasswordHelper.HashPassword("secret");
+
+            var result = userService.CreateUser(user).GetAwaiter().GetResult();
+            if (result.Status == Domain.StatusCode.Success.ToString())
+            {
+                userService.AddToRoles(user, roles).GetAwaiter().GetResult();
+
+                List<Claim> claims = new()
+                {
+                    new Claim(ClaimTypes.Email, user.Email)
+                };
+                userService.AddClaims(user, claims).GetAwaiter().GetResult();
+                userService.GrantPermission(user, Permissions.Admin).GetAwaiter().GetResult();
+            }
+            await context.SaveChangesAsync();
+        }
         public static async void GenerateStudent(IServiceProvider serviceProvider)
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();

@@ -1,4 +1,5 @@
-﻿using SchoolWebRegister.Domain.Entity;
+﻿using SchoolWebRegister.Domain;
+using SchoolWebRegister.Domain.Entity;
 
 namespace SchoolWebRegister.Services.Logging
 {
@@ -18,6 +19,7 @@ namespace SchoolWebRegister.Services.Logging
     {
         void LogInformation(string message);
         void LogInformation(string message, params object[] args);
+        Task<BaseResponse> ReadAllLogs();
         Task LogEventAction(ActionLog log);
     }
 }

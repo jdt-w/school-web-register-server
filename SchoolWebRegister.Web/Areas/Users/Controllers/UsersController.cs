@@ -35,6 +35,14 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             return Ok();
         }
 
+        [HttpGet]
+        [Route("/readLogs")]
+        public async Task<IActionResult> ReadAllLogs()
+        {
+            var result = await _logger.ReadAllLogs();
+            return Ok(result);
+        }
+
         [AllowAnonymous]
         [HttpPost]
         [Route("/log")]
