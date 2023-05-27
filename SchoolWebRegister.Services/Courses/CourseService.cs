@@ -430,7 +430,7 @@ namespace SchoolWebRegister.Services.Courses
 
             conn.Close();
         }
-        public async Task<BaseResponse> DeleteCourse(string courseId)
+        public async Task<BaseResponse> DeleteCourse(string courseId, bool deleteEnrollments = false)
         {
             var course = await GetCourseById(courseId);
 
@@ -461,7 +461,9 @@ namespace SchoolWebRegister.Services.Courses
                     await DeleteSection(section.Id);
                 }
                 await DeleteCourseBase(courseId);
-                await DeleteEnrollments(courseId);
+                
+                if (deleteEnrollments)
+                    await DeleteEnrollments(courseId);
 
                 return new BaseResponse(code: StatusCode.Success);
             }
