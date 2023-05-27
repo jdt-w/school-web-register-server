@@ -352,7 +352,11 @@ namespace SchoolWebRegister.Services.Courses
             string insertQuery = "DELETE FROM dbo.CourseSection1 WHERE Id = @sectionId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@sectionId", sectionId);
+            conn.Open();
+
             await cmd.ExecuteNonQueryAsync();
+            
+            conn.Close();
         }
         private async Task DeleteLesson(string lessonId)
         {
@@ -360,7 +364,11 @@ namespace SchoolWebRegister.Services.Courses
             string insertQuery = "DELETE FROM dbo.CourseLesson WHERE Id = @lessonId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@lessonId", lessonId);
+            conn.Open();
+
             await cmd.ExecuteNonQueryAsync();
+       
+            conn.Close();
         }
         private async Task DeleteQuiz(string quizId)
         {
@@ -368,7 +376,11 @@ namespace SchoolWebRegister.Services.Courses
             string insertQuery = "DELETE FROM dbo.CourseQuiz WHERE QuizId = @quizId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@quizId", quizId);
+            conn.Open();
+            
             await cmd.ExecuteNonQueryAsync();
+            
+            conn.Close();
         }
         private async Task DeleteQuestion(string questionId)
         {
@@ -376,7 +388,11 @@ namespace SchoolWebRegister.Services.Courses
             string insertQuery = "DELETE FROM CourseQuizQuestion WHERE Id = @questionId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@questionId", questionId);
+            conn.Open();
+
             await cmd.ExecuteNonQueryAsync();
+            
+            conn.Close();
         }
         private async Task DeleteQuestionAnswers(string answerId)
         {
@@ -384,7 +400,11 @@ namespace SchoolWebRegister.Services.Courses
             string insertQuery = "DELETE FROM CourseQuestionAnswer WHERE Id = @answerId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@answerId", answerId);
+            conn.Open();
+
             await cmd.ExecuteNonQueryAsync();
+
+            conn.Close();
         }
         private async Task DeleteCourseBase(string courseId)
         {
@@ -392,9 +412,24 @@ namespace SchoolWebRegister.Services.Courses
             string insertQuery = "DELETE FROM Course WHERE Id = @courseId";
             SqlCommand cmd = new SqlCommand(insertQuery, conn);
             cmd.Parameters.AddWithValue("@courseId", courseId);
-            await cmd.ExecuteNonQueryAsync();
-        }
+            conn.Open();
 
+            await cmd.ExecuteNonQueryAsync();
+
+            conn.Close();
+        }
+        private async Task DeleteEnrollments(string courseId)
+        {
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            string insertQuery = "DELETE FROM CourseEnrollments WHERE CourseId = @courseId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@courseId", courseId);
+            conn.Open();
+
+            await cmd.ExecuteNonQueryAsync();
+
+            conn.Close();
+        }
         public async Task<BaseResponse> DeleteCourse(string courseId)
         {
             var course = await GetCourseById(courseId);
@@ -405,10 +440,8 @@ namespace SchoolWebRegister.Services.Courses
                     error: "INVALID_DATA"
                 );
 
-            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             try
             {
-                conn.Open();
                 foreach (var section in course.Sections)
                 {
                     foreach (var lesson in section.Lessons)
@@ -428,6 +461,7 @@ namespace SchoolWebRegister.Services.Courses
                     await DeleteSection(section.Id);
                 }
                 await DeleteCourseBase(courseId);
+                await DeleteEnrollments(courseId);
 
                 return new BaseResponse(code: StatusCode.Success);
             }
@@ -437,10 +471,6 @@ namespace SchoolWebRegister.Services.Courses
                     code: StatusCode.Error,
                     error: ex.Message
                 );
-            }
-            finally
-            { 
-                conn.Close(); 
             }
         }
         public async Task<BaseResponse> EnrollStudent(string courseId, string studentId)
@@ -653,6 +683,128 @@ namespace SchoolWebRegister.Services.Courses
                 conn.Close();
             }
             return list;
+        }
+        public async Task<BaseResponse<decimal>> GetStudentProgress(string courseId, string studentId)
+        {
+            var student = await _userService.GetUserById(studentId);
+            if (student == null)
+                return new BaseResponse<decimal>(
+                    code: StatusCode.Error,
+                    data: 0,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID студента.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                );
+
+            var course = await GetCourseById(courseId);
+            if (course == null)
+                return new BaseResponse<decimal>(
+                    code: StatusCode.Error,
+                    data: 0,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID курса.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                );
+
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            string insertQuery = "SELECT (Progress) FROM CourseEnrollments WHERE CourseId = @courseId AND StudentId = @studentId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@courseId", courseId);
+            cmd.Parameters.AddWithValue("@studentId", studentId);
+            cmd.Parameters.AddWithValue("progress", 0);
+            cmd.Parameters["progress"].Direction = ParameterDirection.Output;
+
+            try
+            {
+                conn.Open();
+
+                await cmd.ExecuteNonQueryAsync();
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        decimal progress = (decimal)reader["progress"];
+                        return new BaseResponse<decimal>(
+                            code: StatusCode.Success,
+                            data: progress
+                        );
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse<decimal>(
+                    code: StatusCode.Error,
+                    data: 0,
+                    error: ex.Message
+                );
+            }
+            finally
+            {
+                conn.Close();
+            }
+
+            return new BaseResponse<decimal>(
+                code: StatusCode.Error,
+                data: 0
+            );
+        }
+        public async Task<BaseResponse> UpdateProgress(string courseId, string studentId, decimal newProgress)
+        {
+            var student = await _userService.GetUserById(studentId);
+            if (student == null)
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID студента.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                );
+
+            var course = await GetCourseById(courseId);
+            if (course == null)
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: new ErrorType
+                    {
+                        Message = "Неверный GUID курса.",
+                        Type = new string[] { "INVALID_DATA" }
+                    }
+                );
+
+            SqlConnection conn = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
+            string insertQuery = "UPDATE CourseEnrollments SET Progress=@progress WHERE CourseId = @courseId AND StudentId = @studentId";
+            SqlCommand cmd = new SqlCommand(insertQuery, conn);
+            cmd.Parameters.AddWithValue("@courseId", courseId);
+            cmd.Parameters.AddWithValue("@studentId", studentId);
+            cmd.Parameters.AddWithValue("@progress", newProgress);
+
+            try
+            {
+                conn.Open();
+
+                await cmd.ExecuteNonQueryAsync();
+                return new BaseResponse(
+                    code: StatusCode.Success,
+                    data: newProgress
+                );
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse(
+                    code: StatusCode.Error,
+                    error: ex.Message
+                );
+            }
+            finally
+            {
+                conn.Close();
+            }
         }
     }
 }

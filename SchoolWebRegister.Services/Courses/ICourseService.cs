@@ -11,7 +11,9 @@ namespace SchoolWebRegister.Services.Courses
         Task<BaseResponse> DeleteCourse(string courseId);
         Task<IEnumerable<CourseInfo>> GetAllCourses();
         Task<CourseInfo> GetCourseById(string id);
+        Task<BaseResponse<decimal>> GetStudentProgress(string courseId, string studentId);
         Task<IEnumerable<CourseInfo>> GetCoursesFromStudent(string studentId);
         Task<IEnumerable<ApplicationUser>> GetStudentsList(string courseId);
+        Task<BaseResponse> UpdateProgress(string courseId, string studentId, decimal newProgress);
     }
 }

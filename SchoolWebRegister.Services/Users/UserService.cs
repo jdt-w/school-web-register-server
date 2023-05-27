@@ -130,7 +130,8 @@ namespace SchoolWebRegister.Services.Users
 
                 var result = await _userRepository.UpdateAsync(editUser);  
                 return new BaseResponse(
-                    code: result != null ? StatusCode.Success : StatusCode.Error
+                    code: result != null ? StatusCode.Success : StatusCode.Error,
+                    data: "Пароль успешно сменен."
                 );
             }
             catch (Exception ex)

@@ -6,7 +6,6 @@ using SchoolWebRegister.Services.Authentication;
 using SchoolWebRegister.Services.Logging;
 using SchoolWebRegister.Services.Users;
 using SchoolWebRegister.Web.ViewModels.Account;
-using System.Data;
 using System.IdentityModel.Tokens.Jwt;
 using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 

@@ -61,6 +61,25 @@ namespace SchoolWebRegister.Web.Areas.Users.Controllers
             ));
         }
 
+        [HttpGet]
+        [Route("/course/progress")]
+        public async Task<IActionResult> GetStudentProgress(string courseId, string studentId)
+        {
+            var result = await _courseService.GetStudentProgress(courseId, studentId);
+            return Ok(result);
+        }
+
+        [HttpPost]
+        [Route("/course/updateProgress")]
+        public async Task<IActionResult> UpdateStudentProgress(string courseId, string studentId, decimal newProgress)
+        {
+            var result = await _courseService.UpdateProgress(courseId, studentId, newProgress);
+            if (result.Status == Domain.StatusCode.Success.ToString())
+                return Ok(result);
+            else
+                return BadRequest(result);
+        }
+
         [HttpPost]
         [Route("/course/create")]
         public async Task<IActionResult> CreateCourse([FromBody] CourseInfo course)
